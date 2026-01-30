@@ -1,11 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Package,
   LogOut,
-  CheckCircle,
-  AlertCircle,
-  TrendingUp,
-  BarChart3,
   Search,
   Users,
   Plus
@@ -21,32 +17,38 @@ export default function AdminDashboard({
   searchQuery = '',
   setSearchQuery,
   onOpenUsers,
-  onAddMachine
+  onAddMachineNavigate
 }) {
-  const filteredMachines = machines.filter(
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  /* ================= FILTER BY STATUS ================= */
+  const statusFilteredMachines =
+    statusFilter === 'all'
+      ? machines
+      : statusFilter === 'completed'
+      ? machines.filter((m) => m.progress === 100)
+      : machines.filter((m) => m.status === statusFilter);
+
+  /* ================= SEARCH ================= */
+  const filteredMachines = statusFilteredMachines.filter(
     (m) =>
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  /* ================= STATS ================= */
   const stats = {
     total: machines.length,
-    onTrack: machines.filter(m => m.status === 'On Track').length,
-    delayed: machines.filter(m => m.status === 'Delayed').length,
-    completed: machines.filter(m => m.progress === 100).length,
-    avgProgress:
-      machines.length > 0
-        ? Math.round(
-            machines.reduce((sum, m) => sum + m.progress, 0) / machines.length
-          )
-        : 0
+    'On Track': machines.filter((m) => m.status === 'On Track').length,
+    Delayed: machines.filter((m) => m.status === 'Delayed').length,
+    Completed: machines.filter((m) => m.progress === 100).length
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* HEADER */}
+      {/* ================= HEADER ================= */}
       <header className="bg-white border-b sticky top-0 shadow-sm">
         <div className="px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -80,19 +82,38 @@ export default function AdminDashboard({
         </div>
       </header>
 
-      {/* CONTENT */}
+      {/* ================= CONTENT ================= */}
       <main className="p-6">
 
-        {/* STATS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <Stat title="Total" value={stats.total} />
-          <Stat title="On Track" value={stats.onTrack} />
-          <Stat title="Delayed" value={stats.delayed} />
-          <Stat title="Completed" value={stats.completed} />
-          <Stat title="Avg %" value={`${stats.avgProgress}%`} />
+        {/* ================= STATS ================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Stat
+            title="Total"
+            value={stats.total}
+            active={statusFilter === 'all'}
+            onClick={() => setStatusFilter('all')}
+          />
+          <Stat
+            title="On Track"
+            value={stats['On Track']}
+            active={statusFilter === 'On Track'}
+            onClick={() => setStatusFilter('On Track')}
+          />
+          <Stat
+            title="Delayed"
+            value={stats.Delayed}
+            active={statusFilter === 'Delayed'}
+            onClick={() => setStatusFilter('Delayed')}
+          />
+          <Stat
+            title="Completed"
+            value={stats.Completed}
+            active={statusFilter === 'completed'}
+            onClick={() => setStatusFilter('completed')}
+          />
         </div>
 
-        {/* SEARCH */}
+        {/* ================= SEARCH ================= */}
         <div className="mb-6 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -103,9 +124,9 @@ export default function AdminDashboard({
           />
         </div>
 
-        {/* MACHINES */}
+        {/* ================= MACHINES ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {filteredMachines.map(machine => (
+          {filteredMachines.map((machine) => (
             <MachineCard
               key={machine.id}
               machine={machine}
@@ -113,16 +134,9 @@ export default function AdminDashboard({
             />
           ))}
 
-          {/* ADD MACHINE */}
+          {/* ================= ADD MACHINE ================= */}
           <div
-            onClick={() => {
-              const name = prompt('Machine name');
-              const client = prompt('Client');
-              const id = prompt('Machine ID');
-              if (name && client && id) {
-                onAddMachine({ name, client, id });
-              }
-            }}
+            onClick={onAddMachineNavigate}
             className="bg-white border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:shadow p-6"
           >
             <Plus size={32} className="text-blue-600" />
@@ -134,12 +148,17 @@ export default function AdminDashboard({
   );
 }
 
-function Stat({ title, value }) {
+/* ================= STAT CARD ================= */
+function Stat({ title, value, onClick, active }) {
   return (
-    <div className="bg-white p-4 rounded-xl shadow border">
-      <p className="text-sm text-slate-500">{title}</p>
+    <div
+      onClick={onClick}
+      className={`cursor-pointer p-4 rounded-xl border shadow transition ${
+        active ? 'bg-blue-600 text-white' : 'bg-white'
+      }`}
+    >
+      <p className="text-sm">{title}</p>
       <p className="text-2xl font-bold">{value}</p>
     </div>
   );
 }
-
