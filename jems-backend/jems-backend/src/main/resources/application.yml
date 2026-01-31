@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: jems-project-management
+  data:
+    mongodb:
+      uri: mongodb+srv://root:root@jems.fb1dkwa.mongodb.net/?appName=JEMS
+      database: jems_db
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+jwt:
+  secret: ${JWT_SECRET:jemsSecretKeyForJWTTokenGenerationAndValidation2024}
+  expiration: 86400000 # 24 hours in milliseconds
+
+logging:
+  level:
+    root: INFO
+    com.jems: DEBUG
+    org.springframework.data.mongodb: DEBUG

@@ -1,0 +1,444 @@
+{
+  "info": {
+    "name": "JEMS Project Management API",
+    "description": "Complete API collection for JEMS Project Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "machine_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "task_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subtask_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"email\": \"admin@jems.com\",\n  \"password\": \"admin123\",\n  \"fullName\": \"Admin User\",\n  \"phoneNumber\": \"+91-1234567890\",\n  \"roles\": [\"ADMIN\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set(\"jwt_token\", jsonData.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Validate Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/validate",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "validate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Manager Management",
+      "item": [
+        {
+          "name": "Create Manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager1\",\n  \"email\": \"manager1@jems.com\",\n  \"password\": \"manager123\",\n  \"fullName\": \"Manager One\",\n  \"phoneNumber\": \"+91-9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/managers",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "managers"]
+            }
+          }
+        },
+        {
+          "name": "Get All Managers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/managers",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "managers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Machine Management",
+      "item": [
+        {
+          "name": "Create Machine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"machineId\": \"M-2024-001\",\n  \"machineName\": \"CNC Milling Machine\",\n  \"machineType\": \"Manufacturing Equipment\",\n  \"description\": \"High precision CNC milling machine\",\n  \"clientName\": \"ABC Industries\",\n  \"clientContact\": \"+91-1234567890\",\n  \"projectStartDate\": \"2024-01-15T00:00:00\",\n  \"poDate\": \"2024-01-10T00:00:00\",\n  \"deliveryPeriod\": \"2024-06-30T00:00:00\",\n  \"assignedManagerId\": \"MANAGER_ID_HERE\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/machines",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines"]
+            }
+          }
+        },
+        {
+          "name": "Get All Machines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/machines",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines"]
+            }
+          }
+        },
+        {
+          "name": "Get Machine by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/machines/{{machine_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines", "{{machine_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Task Management",
+      "item": [
+        {
+          "name": "Add Task to Machine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stageName\": \"Design\",\n  \"stageNumber\": \"1\",\n  \"description\": \"Complete design phase\",\n  \"checkedBy\": \"SD\",\n  \"approvedBy\": \"JJK\",\n  \"assignedTo\": \"Chief Designer\",\n  \"startDate\": \"2024-01-15T00:00:00\",\n  \"endDate\": \"2024-02-15T00:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/machines/{{machine_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines", "{{machine_id}}", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "Add SubTask to Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fabrication\",\n  \"description\": \"Fabricate machine parts\",\n  \"assignedEmployee\": \"John Doe\",\n  \"assignedEmployeeId\": \"EMP001\",\n  \"startDate\": \"2024-02-16T00:00:00\",\n  \"endDate\": \"2024-03-15T00:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/machines/{{machine_id}}/tasks/{{task_id}}/subtasks",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "machines", "{{machine_id}}", "tasks", "{{task_id}}", "subtasks"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Machine Access",
+      "item": [
+        {
+          "name": "Get All Machines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/manager/machines",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "machines"]
+            }
+          }
+        },
+        {
+          "name": "Get Assigned Machines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/manager/machines/assigned",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "machines", "assigned"]
+            }
+          }
+        },
+        {
+          "name": "Get Working Machines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/manager/machines/working",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "machines", "working"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Task Management",
+      "item": [
+        {
+          "name": "Update SubTask Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"remarks\": \"Work in progress\",\n  \"progressPercentage\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/manager/machines/{{machine_id}}/tasks/{{task_id}}/subtasks/{{subtask_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "machines", "{{machine_id}}", "tasks", "{{task_id}}", "subtasks", "{{subtask_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Complete SubTask",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remarks\": \"Task completed successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/manager/machines/{{machine_id}}/tasks/{{task_id}}/subtasks/{{subtask_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "machines", "{{machine_id}}", "tasks", "{{task_id}}", "subtasks", "{{subtask_id}}", "complete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Notifications",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/manager/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/manager/notifications/unread",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "notifications", "unread"]
+            }
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/manager/notifications/mark-all-read",
+              "host": ["{{base_url}}"],
+              "path": ["manager", "notifications", "mark-all-read"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
