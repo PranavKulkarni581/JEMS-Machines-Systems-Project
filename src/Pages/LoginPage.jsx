@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Package, User, Settings } from 'lucide-react';
 
 export default function LoginPage({ onLogin }) {
-  const [selectedRole, setSelectedRole] = useState('employee');
+  const [selectedRole, setSelectedRole] = useState('manager');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
 
@@ -45,15 +45,15 @@ export default function LoginPage({ onLogin }) {
             {/* Role Toggle */}
             <div className="flex gap-2 mb-6">
               <button
-                onClick={() => setSelectedRole('employee')}
+                onClick={() => setSelectedRole('manager')}
                 className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all text-center ${
-                  selectedRole === 'employee'
+                  selectedRole === 'manager'
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 <User className="w-5 h-5 inline mr-2" />
-                Employee
+                Manager
               </button>
 
               <button
@@ -116,7 +116,7 @@ export default function LoginPage({ onLogin }) {
                 Demo Credentials:
               </p>
               <p>Admin: admin / admin123</p>
-              <p>Employee: emp1 / emp123</p>
+              <p>Manager: emp1 / emp123</p>
             </div>
 
           </div>

@@ -4,7 +4,7 @@ import { mockMachines, USERS } from '../data/machines';
 
 import LoginPage from './LoginPage';
 import AdminDashboard from './AdminDashboard';
-import EmployeeDashboard from './EmployeeDashboard';
+import ManagerDashboard from './ManagerDashboard';
 import MachineDetailPage from './MachineDetailPage';
 import StageTasksPage from './StageTasksPage';
 import UsersPage from './UsersPage';
@@ -13,13 +13,14 @@ import AddMachine from './AddMachine';
 export default function JEMSTracker() {
   const navigate = useNavigate();
 
+  /* ================= STATE ================= */
   const [currentUser, setCurrentUser] = useState(null);
   const [machines, setMachines] = useState(mockMachines);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [selectedStage, setSelectedStage] = useState(null);
 
+  const [managers, setManagers] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   /* ================= LOGIN ================= */
@@ -27,7 +28,7 @@ export default function JEMSTracker() {
     const user = USERS[userId];
     if (user && user.password === password) {
       setCurrentUser(user);
-      navigate(user.role === 'admin' ? '/admin' : '/employee');
+      navigate(user.role === 'admin' ? '/admin' : '/manager');
       return true;
     }
     return false;
@@ -164,18 +165,41 @@ export default function JEMSTracker() {
         }
       />
 
-      {/* ================= ADD MACHINE PAGE ================= */}
+      {/* ================= ADD MACHINE ================= */}
       <Route
         path="/add-machine"
         element={
           currentUser?.role === 'admin' ? (
             <AddMachine
               employees={employees}
-              users={users}
+              managers={managers}
               onBack={() => navigate('/admin')}
               onCreateMachine={(newMachine) => {
                 addMachine(newMachine);
                 navigate('/admin');
+              }}
+            />
+          ) : (
+            <Navigate to="/" />
+          )
+        }
+      />
+
+      {/* ================= MANAGER ================= */}
+      <Route
+        path="/manager"
+        element={
+          currentUser?.role === 'manager' ? (
+            <ManagerDashboard
+              machines={machines}
+              currentUser={currentUser}
+              onSelectMachine={(m) => {
+                setSelectedMachine(m);
+                navigate('/machine');
+              }}
+              onLogout={() => {
+                setCurrentUser(null);
+                navigate('/');
               }}
             />
           ) : (
@@ -192,8 +216,8 @@ export default function JEMSTracker() {
             <UsersPage
               employees={employees}
               setEmployees={setEmployees}
-              users={users}
-              setUsers={setUsers}
+              managers={managers}
+              setManagers={setManagers}
               onBack={() => navigate('/admin')}
             />
           ) : (
@@ -210,7 +234,9 @@ export default function JEMSTracker() {
             <MachineDetailPage
               machine={selectedMachine}
               currentUser={currentUser}
-              onBack={() => navigate('/admin')}
+              onBack={() =>
+                navigate(currentUser?.role === 'admin' ? '/admin' : '/manager')
+              }
               onOpenStage={(key) => {
                 setSelectedStage(key);
                 navigate('/stage');

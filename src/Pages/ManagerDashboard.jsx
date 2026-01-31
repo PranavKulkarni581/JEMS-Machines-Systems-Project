@@ -9,7 +9,7 @@ import {
 import MachineCard from './MachineCard';
 import StatusBadge from './StatusBadge';
 
-export default function EmployeeDashboard({
+export default function ManagerDashboard({
   machines,
   currentUser,
   onSelectMachine,
@@ -66,7 +66,7 @@ export default function EmployeeDashboard({
                   {currentUser.name}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Employee
+                  Manager
                 </p>
               </div>
 

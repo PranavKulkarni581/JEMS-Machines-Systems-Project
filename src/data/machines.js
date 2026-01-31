@@ -1,21 +1,45 @@
 // machines.js
 
-// Mock Data
 export const mockMachines = [
   {
     id: 'M001',
     name: 'CNC Milling Machine',
     client: 'Tata Motors',
     progress: 75,
-    currentStage: 'Trials',
+    currentStage: 'trials',
     status: 'On Track',
     assignedTo: 'emp1',
     stages: {
-      start: { status: 'Completed', date: '2024-01-10', responsible: 'Admin' },
-      design: { status: 'Completed', date: '2024-01-15', responsible: 'Design Team' },
-      dap: { status: 'Completed', date: '2024-01-20', responsible: 'Engineering' },
-      finalDesign: { status: 'Completed', date: '2024-01-25', responsible: 'Design Team' },
+      start: {
+        name: 'Project Start',
+        status: 'Completed',
+        date: '2024-01-10',
+        responsible: 'Admin',
+        subtasks: []
+      },
+      design: {
+        name: 'Design',
+        status: 'Completed',
+        date: '2024-01-15',
+        responsible: 'Design Team',
+        subtasks: []
+      },
+      dap: {
+        name: 'DAP',
+        status: 'Completed',
+        date: '2024-01-20',
+        responsible: 'Engineering',
+        subtasks: []
+      },
+      finalDesign: {
+        name: 'Final Design',
+        status: 'Completed',
+        date: '2024-01-25',
+        responsible: 'Design Team',
+        subtasks: []
+      },
       purchase: {
+        name: 'Purchase',
         status: 'Completed',
         date: '2024-02-01',
         responsible: 'Purchase Dept',
@@ -28,6 +52,7 @@ export const mockMachines = [
         ]
       },
       fabrication: {
+        name: 'Fabrication',
         status: 'Completed',
         date: '2024-02-15',
         responsible: 'Fabrication',
@@ -39,6 +64,7 @@ export const mockMachines = [
         ]
       },
       trials: {
+        name: 'Trials',
         status: 'In Progress',
         date: '2024-02-20',
         responsible: 'QA Team',
@@ -48,24 +74,36 @@ export const mockMachines = [
           { id: 't3', name: 'Final Trials', status: 'Not Started', assignedTo: 'emp2' }
         ]
       },
-      inspection: { status: 'Not Started', responsible: 'QC Team' },
-      dispatch: { status: 'Not Started', responsible: 'Logistics' }
+      inspection: {
+        name: 'Inspection',
+        status: 'Not Started',
+        responsible: 'QC Team',
+        subtasks: []
+      },
+      dispatch: {
+        name: 'Dispatch',
+        status: 'Not Started',
+        responsible: 'Logistics',
+        subtasks: []
+      }
     }
   },
+
   {
     id: 'M002',
     name: 'Hydraulic Press Machine',
     client: 'Mahindra & Mahindra',
     progress: 45,
-    currentStage: 'Fabrication',
+    currentStage: 'fabrication',
     status: 'Delayed',
     assignedTo: 'emp2',
     stages: {
-      start: { status: 'Completed', date: '2024-01-15', responsible: 'Admin' },
-      design: { status: 'Completed', date: '2024-01-22', responsible: 'Design Team' },
-      dap: { status: 'Completed', date: '2024-01-28', responsible: 'Engineering' },
-      finalDesign: { status: 'Completed', date: '2024-02-05', responsible: 'Design Team' },
+      start: { name: 'Project Start', status: 'Completed', date: '2024-01-15', responsible: 'Admin', subtasks: [] },
+      design: { name: 'Design', status: 'Completed', date: '2024-01-22', responsible: 'Design Team', subtasks: [] },
+      dap: { name: 'DAP', status: 'Completed', date: '2024-01-28', responsible: 'Engineering', subtasks: [] },
+      finalDesign: { name: 'Final Design', status: 'Completed', date: '2024-02-05', responsible: 'Design Team', subtasks: [] },
       purchase: {
+        name: 'Purchase',
         status: 'Completed',
         date: '2024-02-10',
         responsible: 'Purchase Dept',
@@ -78,6 +116,7 @@ export const mockMachines = [
         ]
       },
       fabrication: {
+        name: 'Fabrication',
         status: 'In Progress',
         date: '2024-02-18',
         responsible: 'Fabrication',
@@ -88,25 +127,27 @@ export const mockMachines = [
           { id: 'f4', name: 'Electro-Mechanical Interfacing', status: 'Not Started', assignedTo: 'emp2' }
         ]
       },
-      trials: { status: 'Not Started', responsible: 'QA Team' },
-      inspection: { status: 'Not Started', responsible: 'QC Team' },
-      dispatch: { status: 'Not Started', responsible: 'Logistics' }
+      trials: { name: 'Trials', status: 'Not Started', responsible: 'QA Team', subtasks: [] },
+      inspection: { name: 'Inspection', status: 'Not Started', responsible: 'QC Team', subtasks: [] },
+      dispatch: { name: 'Dispatch', status: 'Not Started', responsible: 'Logistics', subtasks: [] }
     }
   },
+
   {
     id: 'M003',
     name: 'Conveyor System',
     client: 'Bajaj Auto',
     progress: 90,
-    currentStage: 'Inspection',
+    currentStage: 'inspection',
     status: 'On Track',
     assignedTo: 'emp3',
     stages: {
-      start: { status: 'Completed', date: '2024-01-05', responsible: 'Admin' },
-      design: { status: 'Completed', date: '2024-01-10', responsible: 'Design Team' },
-      dap: { status: 'Completed', date: '2024-01-12', responsible: 'Engineering' },
-      finalDesign: { status: 'Completed', date: '2024-01-18', responsible: 'Design Team' },
+      start: { name: 'Project Start', status: 'Completed', date: '2024-01-05', responsible: 'Admin', subtasks: [] },
+      design: { name: 'Design', status: 'Completed', date: '2024-01-10', responsible: 'Design Team', subtasks: [] },
+      dap: { name: 'DAP', status: 'Completed', date: '2024-01-12', responsible: 'Engineering', subtasks: [] },
+      finalDesign: { name: 'Final Design', status: 'Completed', date: '2024-01-18', responsible: 'Design Team', subtasks: [] },
       purchase: {
+        name: 'Purchase',
         status: 'Completed',
         date: '2024-01-25',
         responsible: 'Purchase Dept',
@@ -119,6 +160,7 @@ export const mockMachines = [
         ]
       },
       fabrication: {
+        name: 'Fabrication',
         status: 'Completed',
         date: '2024-02-08',
         responsible: 'Fabrication',
@@ -130,6 +172,7 @@ export const mockMachines = [
         ]
       },
       trials: {
+        name: 'Trials',
         status: 'Completed',
         date: '2024-02-12',
         responsible: 'QA Team',
@@ -140,6 +183,7 @@ export const mockMachines = [
         ]
       },
       inspection: {
+        name: 'Inspection',
         status: 'In Progress',
         date: '2024-02-18',
         responsible: 'QC Team',
@@ -148,15 +192,15 @@ export const mockMachines = [
           { id: 'i2', name: 'Quality Check', status: 'In Progress', assignedTo: 'emp1' }
         ]
       },
-      dispatch: { status: 'Not Started', responsible: 'Logistics' }
+      dispatch: { name: 'Dispatch', status: 'Not Started', responsible: 'Logistics', subtasks: [] }
     }
   }
 ];
 
 // Users
 export const USERS = {
-  'admin': { id: 'admin', name: 'Admin User', role: 'admin', password: 'admin123' },
-  'emp1': { id: 'emp1', name: 'Rajesh Kumar', role: 'employee', password: 'emp123' },
-  'emp2': { id: 'emp2', name: 'Priya Sharma', role: 'employee', password: 'emp123' },
-  'emp3': { id: 'emp3', name: 'Amit Patel', role: 'employee', password: 'emp123' }
+  admin: { id: 'admin', name: 'Admin User', role: 'admin', password: 'admin123' },
+  emp1: { id: 'emp1', name: 'Rajesh Kumar', role: 'manager', password: 'emp123' },
+  emp2: { id: 'emp2', name: 'Priya Sharma', role: 'manager', password: 'emp123' },
+  emp3: { id: 'emp3', name: 'Amit Patel', role: 'manager', password: 'emp123' }
 };

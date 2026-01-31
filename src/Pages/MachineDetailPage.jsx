@@ -300,7 +300,7 @@ export default function MachineDetailPage({
         {Object.entries(machine.stages).map(([key, stage]) => (
           <div
             key={key}
-            onClick={() => stage.subtasks.length && onOpenStage(key)}
+            onClick={() => onOpenStage(key)}
             className="bg-white p-5 rounded-xl border shadow-md cursor-pointer"
           >
             <div className="flex justify-between items-center">

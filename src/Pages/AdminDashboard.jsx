@@ -26,12 +26,12 @@ export default function AdminDashboard({
     statusFilter === 'all'
       ? machines
       : statusFilter === 'completed'
-      ? machines.filter((m) => m.progress === 100)
-      : machines.filter((m) => m.status === statusFilter);
+      ? machines.filter(m => m.progress === 100)
+      : machines.filter(m => m.status === statusFilter);
 
   /* ================= SEARCH ================= */
   const filteredMachines = statusFilteredMachines.filter(
-    (m) =>
+    m =>
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.id.toLowerCase().includes(searchQuery.toLowerCase())
@@ -40,9 +40,15 @@ export default function AdminDashboard({
   /* ================= STATS ================= */
   const stats = {
     total: machines.length,
-    'On Track': machines.filter((m) => m.status === 'On Track').length,
-    Delayed: machines.filter((m) => m.status === 'Delayed').length,
-    Completed: machines.filter((m) => m.progress === 100).length
+    'On Track': machines.filter(m => m.status === 'On Track').length,
+    Delayed: machines.filter(m => m.status === 'Delayed').length,
+    Completed: machines.filter(m => m.progress === 100).length,
+    avgProgress:
+      machines.length > 0
+        ? Math.round(
+            machines.reduce((sum, m) => sum + m.progress, 0) / machines.length
+          )
+        : 0
   };
 
   return (
@@ -86,7 +92,7 @@ export default function AdminDashboard({
       <main className="p-6">
 
         {/* ================= STATS ================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <Stat
             title="Total"
             value={stats.total}
@@ -111,6 +117,11 @@ export default function AdminDashboard({
             active={statusFilter === 'completed'}
             onClick={() => setStatusFilter('completed')}
           />
+          <Stat
+            title="Avg Progress"
+            value={`${stats.avgProgress}%`}
+            disabled
+          />
         </div>
 
         {/* ================= SEARCH ================= */}
@@ -118,7 +129,7 @@ export default function AdminDashboard({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search machines..."
             className="w-full pl-10 pr-4 py-3 border rounded-lg"
           />
@@ -126,7 +137,7 @@ export default function AdminDashboard({
 
         {/* ================= MACHINES ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {filteredMachines.map((machine) => (
+          {filteredMachines.map(machine => (
             <MachineCard
               key={machine.id}
               machine={machine}
@@ -149,12 +160,16 @@ export default function AdminDashboard({
 }
 
 /* ================= STAT CARD ================= */
-function Stat({ title, value, onClick, active }) {
+function Stat({ title, value, onClick, active, disabled }) {
   return (
     <div
-      onClick={onClick}
-      className={`cursor-pointer p-4 rounded-xl border shadow transition ${
-        active ? 'bg-blue-600 text-white' : 'bg-white'
+      onClick={!disabled ? onClick : undefined}
+      className={`p-4 rounded-xl border shadow transition ${
+        disabled
+          ? 'bg-white cursor-default'
+          : active
+          ? 'bg-blue-600 text-white cursor-pointer'
+          : 'bg-white cursor-pointer'
       }`}
     >
       <p className="text-sm">{title}</p>
