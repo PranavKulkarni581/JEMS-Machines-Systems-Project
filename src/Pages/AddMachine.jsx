@@ -30,6 +30,7 @@ export default function AddMachine({
     id: '',
     client: '',
     deadline: '',
+    description: '',
     tasks: []
   });
 
@@ -42,7 +43,14 @@ export default function AddMachine({
 
     setMachine(prev => ({
       ...prev,
-      tasks: [...prev.tasks, { name, subtasks: [] }]
+      tasks: [
+        ...prev.tasks,
+        {
+          name,
+          managerId: '',
+          subtasks: []
+        }
+      ]
     }));
 
     setNewTaskName('');
@@ -55,7 +63,7 @@ export default function AddMachine({
     const updated = [...machine.tasks];
     updated[taskIndex].subtasks.push({
       name,
-      managerId: '',
+      description: '',
       employeeIds: []
     });
 
@@ -63,23 +71,25 @@ export default function AddMachine({
     setNewSubtask(prev => ({ ...prev, [taskIndex]: '' }));
   };
 
-  /* ================= ASSIGN MANAGER ================= */
-  const assignManager = (t, s, id) => {
+  /* ================= ASSIGN TASK MANAGER ================= */
+  const assignTaskManager = (taskIndex, managerId) => {
     const updated = [...machine.tasks];
-    updated[t].subtasks[s].managerId = id;
+    updated[taskIndex].managerId = managerId;
     setMachine({ ...machine, tasks: updated });
   };
 
-  /* ================= ASSIGN EMPLOYEE ================= */
-  const toggleEmployee = (t, s, empId) => {
+  /* ================= SUBTASK DESCRIPTION ================= */
+  const updateSubtaskDescription = (t, s, value) => {
     const updated = [...machine.tasks];
-    const list = updated[t].subtasks[s].employeeIds;
+    updated[t].subtasks[s].description = value;
+    setMachine({ ...machine, tasks: updated });
+  };
 
-    updated[t].subtasks[s].employeeIds =
-      list.includes(empId)
-        ? list.filter(id => id !== empId)
-        : [...list, empId];
-
+  /* ================= ASSIGN EMPLOYEES ================= */
+  const handleEmployeeSelect = (t, s, options) => {
+    const ids = Array.from(options).map(o => o.value);
+    const updated = [...machine.tasks];
+    updated[t].subtasks[s].employeeIds = ids;
     setMachine({ ...machine, tasks: updated });
   };
 
@@ -94,7 +104,7 @@ export default function AddMachine({
         </div>
 
         {/* MACHINE INFO */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="text-sm font-medium">Machine Name</label>
             <input
@@ -133,6 +143,19 @@ export default function AddMachine({
           </div>
         </div>
 
+        {/* MACHINE DESCRIPTION */}
+        <div className="mb-6">
+          <label className="text-sm font-medium">Machine Description</label>
+          <textarea
+            className="border p-2 rounded w-full"
+            rows={3}
+            value={machine.description}
+            onChange={e =>
+              setMachine({ ...machine, description: e.target.value })
+            }
+          />
+        </div>
+
         {/* TASKS */}
         <h2 className="font-semibold mb-2">Tasks</h2>
 
@@ -149,7 +172,7 @@ export default function AddMachine({
           ))}
         </select>
 
-        {/* ADD TASK TEXTBOX */}
+        {/* ADD TASK */}
         <div className="flex gap-2 mb-6">
           <input
             placeholder="Add new task..."
@@ -168,9 +191,23 @@ export default function AddMachine({
         {/* TASK LIST */}
         {machine.tasks.map((task, tIndex) => (
           <div key={tIndex} className="border p-4 rounded mb-4">
+
             <h3 className="font-semibold mb-2">{task.name}</h3>
 
-            {/* SUBTASK DROPDOWN */}
+            {/* TASK MANAGER */}
+            <label className="text-sm font-medium">Task Manager</label>
+            <select
+              className="border p-2 rounded w-full mb-3"
+              value={task.managerId}
+              onChange={e => assignTaskManager(tIndex, e.target.value)}
+            >
+              <option value="">Select Manager</option>
+              {managers.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+
+            {/* SUBTASK SELECT */}
             <select
               className="border p-2 rounded w-full mb-2"
               onChange={(e) => {
@@ -184,14 +221,17 @@ export default function AddMachine({
               ))}
             </select>
 
-            {/* ADD SUBTASK TEXTBOX */}
+            {/* ADD SUBTASK */}
             <div className="flex gap-2 mb-3">
               <input
                 placeholder="Add new subtask..."
                 className="border p-2 rounded w-full"
                 value={newSubtask[tIndex] || ''}
                 onChange={e =>
-                  setNewSubtask(prev => ({ ...prev, [tIndex]: e.target.value }))
+                  setNewSubtask(prev => ({
+                    ...prev,
+                    [tIndex]: e.target.value
+                  }))
                 }
               />
               <button
@@ -204,37 +244,41 @@ export default function AddMachine({
 
             {/* SUBTASK LIST */}
             {task.subtasks.map((sub, sIndex) => (
-              <div key={sIndex} className="bg-slate-50 p-3 rounded mb-2">
+              <div key={sIndex} className="bg-slate-50 p-3 rounded mb-3">
+
                 <p className="font-medium">{sub.name}</p>
 
-                <label className="text-sm font-medium">Manager</label>
-                <select
+                {/* SUBTASK DESCRIPTION */}
+                <textarea
+                  placeholder="Subtask description..."
                   className="border p-2 rounded w-full mb-2"
+                  rows={2}
+                  value={sub.description}
                   onChange={e =>
-                    assignManager(tIndex, sIndex, e.target.value)
+                    updateSubtaskDescription(tIndex, sIndex, e.target.value)
+                  }
+                />
+
+                {/* EMPLOYEE MULTI SELECT */}
+                <label className="text-sm font-medium">Assign Employees</label>
+                <select
+                  multiple
+                  className="border p-2 rounded w-full"
+                  value={sub.employeeIds}
+                  onChange={e =>
+                    handleEmployeeSelect(
+                      tIndex,
+                      sIndex,
+                      e.target.selectedOptions
+                    )
                   }
                 >
-                  <option value="">Select Manager</option>
-                  {managers.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </option>
                   ))}
                 </select>
-
-                <p className="text-sm font-medium mb-1">Employees</p>
-                <div className="flex flex-wrap gap-3">
-                  {employees.map(emp => (
-                    <label key={emp.id} className="text-sm flex gap-1">
-                      <input
-                        type="checkbox"
-                        checked={sub.employeeIds.includes(emp.id)}
-                        onChange={() =>
-                          toggleEmployee(tIndex, sIndex, emp.id)
-                        }
-                      />
-                      {emp.name}
-                    </label>
-                  ))}
-                </div>
               </div>
             ))}
           </div>
