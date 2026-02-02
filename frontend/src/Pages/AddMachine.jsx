@@ -1,297 +1,208 @@
-import React, { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
-const BASE_TASKS = [
-  'Design',
-  'Manufacturing',
-  'Assembly',
-  'Quality Check',
-  'Delivery'
-];
+const API_BASE_URL = 'http://localhost:8080/api';
 
-const SUBTASKS_BY_TASK = {
-  Design: ['Blueprint', 'Review'],
-  Manufacturing: ['Raw Material', 'Fabrication'],
-  Assembly: ['Mechanical', 'Electrical'],
-  'Quality Check': ['Inspection', 'Testing'],
-  Delivery: ['Packaging', 'Transport']
-};
+export default function AddMachine({ onBack, onCreateMachine }) {
+  const [managers, setManagers] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-export default function AddMachine({
-  employees = [],
-  users = [],
-  onCreateMachine,
-  onBack
-}) {
-  const managers = users.filter(u => u.role === 'manager');
-
-  const [machine, setMachine] = useState({
-    name: '',
-    id: '',
-    client: '',
-    deadline: '',
+  const [form, setForm] = useState({
+    machineId: '',
+    machineName: '',
+    machineType: '',
     description: '',
-    tasks: []
+    clientName: '',
+    clientContact: '',
+    projectStartDate: '',
+    poDate: '',
+    deliveryPeriod: '',
+    assignedManagerId: ''
   });
 
-  const [newTaskName, setNewTaskName] = useState('');
-  const [newSubtask, setNewSubtask] = useState({});
+  const token = localStorage.getItem('token');
 
-  /* ================= ADD TASK ================= */
-  const addTask = (name) => {
-    if (!name.trim()) return;
+  /* ================= LOAD MANAGERS ================= */
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/admin/managers`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setManagers(data))
+      .catch(err => console.error(err));
+  }, [token]);
 
-    setMachine(prev => ({
-      ...prev,
-      tasks: [
-        ...prev.tasks,
-        {
-          name,
-          managerId: '',
-          subtasks: []
-        }
-      ]
-    }));
+  /* ================= CREATE MACHINE ================= */
+  const createMachine = () => {
+    if (
+      !form.machineId ||
+      !form.machineName ||
+      !form.clientName ||
+      !form.projectStartDate ||
+      !form.deliveryPeriod
+    ) {
+      alert('Please fill all required fields');
+      return;
+    }
 
-    setNewTaskName('');
-  };
+    setLoading(true);
 
-  /* ================= ADD SUBTASK ================= */
-  const addSubtask = (taskIndex, name) => {
-    if (!name.trim()) return;
-
-    const updated = [...machine.tasks];
-    updated[taskIndex].subtasks.push({
-      name,
-      description: '',
-      employeeIds: []
-    });
-
-    setMachine({ ...machine, tasks: updated });
-    setNewSubtask(prev => ({ ...prev, [taskIndex]: '' }));
-  };
-
-  /* ================= ASSIGN TASK MANAGER ================= */
-  const assignTaskManager = (taskIndex, managerId) => {
-    const updated = [...machine.tasks];
-    updated[taskIndex].managerId = managerId;
-    setMachine({ ...machine, tasks: updated });
-  };
-
-  /* ================= SUBTASK DESCRIPTION ================= */
-  const updateSubtaskDescription = (t, s, value) => {
-    const updated = [...machine.tasks];
-    updated[t].subtasks[s].description = value;
-    setMachine({ ...machine, tasks: updated });
-  };
-
-  /* ================= ASSIGN EMPLOYEES ================= */
-  const handleEmployeeSelect = (t, s, options) => {
-    const ids = Array.from(options).map(o => o.value);
-    const updated = [...machine.tasks];
-    updated[t].subtasks[s].employeeIds = ids;
-    setMachine({ ...machine, tasks: updated });
+    fetch(`${API_BASE_URL}/admin/machines`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(form)
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to create machine');
+        return res.json();
+      })
+      .then(createdMachine => {
+        onCreateMachine(createdMachine);
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Machine creation failed');
+      })
+      .finally(() => setLoading(false));
   };
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow">
+      <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow">
 
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Create New Machine</h1>
-          <button onClick={onBack}><X /></button>
-        </div>
-
-        {/* MACHINE INFO */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-sm font-medium">Machine Name</label>
-            <input
-              className="border p-2 rounded w-full"
-              value={machine.name}
-              onChange={e => setMachine({ ...machine, name: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Machine ID</label>
-            <input
-              className="border p-2 rounded w-full"
-              value={machine.id}
-              onChange={e => setMachine({ ...machine, id: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Client</label>
-            <input
-              className="border p-2 rounded w-full"
-              value={machine.client}
-              onChange={e => setMachine({ ...machine, client: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Deadline</label>
-            <input
-              type="date"
-              className="border p-2 rounded w-full"
-              value={machine.deadline}
-              onChange={e => setMachine({ ...machine, deadline: e.target.value })}
-            />
-          </div>
-        </div>
-
-        {/* MACHINE DESCRIPTION */}
-        <div className="mb-6">
-          <label className="text-sm font-medium">Machine Description</label>
-          <textarea
-            className="border p-2 rounded w-full"
-            rows={3}
-            value={machine.description}
-            onChange={e =>
-              setMachine({ ...machine, description: e.target.value })
-            }
-          />
-        </div>
-
-        {/* TASKS */}
-        <h2 className="font-semibold mb-2">Tasks</h2>
-
-        <select
-          className="border p-2 rounded w-full mb-2"
-          onChange={(e) => {
-            addTask(e.target.value);
-            e.target.value = '';
-          }}
-        >
-          <option value="">Select Existing Task</option>
-          {BASE_TASKS.map(t => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-
-        {/* ADD TASK */}
-        <div className="flex gap-2 mb-6">
-          <input
-            placeholder="Add new task..."
-            className="border p-2 rounded w-full"
-            value={newTaskName}
-            onChange={e => setNewTaskName(e.target.value)}
-          />
-          <button
-            onClick={() => addTask(newTaskName)}
-            className="bg-blue-600 text-white px-4 rounded"
-          >
-            <Plus size={16} />
+          <button onClick={onBack}>
+            <X />
           </button>
         </div>
 
-        {/* TASK LIST */}
-        {machine.tasks.map((task, tIndex) => (
-          <div key={tIndex} className="border p-4 rounded mb-4">
+        {/* FORM */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            <h3 className="font-semibold mb-2">{task.name}</h3>
+          <Field label="Machine ID *">
+            <input
+              className="input"
+              value={form.machineId}
+              onChange={e => setForm({ ...form, machineId: e.target.value })}
+            />
+          </Field>
 
-            {/* TASK MANAGER */}
-            <label className="text-sm font-medium">Task Manager</label>
+          <Field label="Machine Name *">
+            <input
+              className="input"
+              value={form.machineName}
+              onChange={e => setForm({ ...form, machineName: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Machine Type">
+            <input
+              className="input"
+              value={form.machineType}
+              onChange={e => setForm({ ...form, machineType: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Client Name *">
+            <input
+              className="input"
+              value={form.clientName}
+              onChange={e => setForm({ ...form, clientName: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Client Contact">
+            <input
+              className="input"
+              value={form.clientContact}
+              onChange={e => setForm({ ...form, clientContact: e.target.value })}
+            />
+          </Field>
+
+          <Field label="Assigned Manager">
             <select
-              className="border p-2 rounded w-full mb-3"
-              value={task.managerId}
-              onChange={e => assignTaskManager(tIndex, e.target.value)}
+              className="input"
+              value={form.assignedManagerId}
+              onChange={e =>
+                setForm({ ...form, assignedManagerId: e.target.value })
+              }
             >
-              <option value="">Select Manager</option>
+              <option value="">Select manager</option>
               {managers.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+                <option key={m.id} value={m.id}>
+                  {m.fullName}
+                </option>
               ))}
             </select>
+          </Field>
 
-            {/* SUBTASK SELECT */}
-            <select
-              className="border p-2 rounded w-full mb-2"
-              onChange={(e) => {
-                addSubtask(tIndex, e.target.value);
-                e.target.value = '';
-              }}
-            >
-              <option value="">Select Existing Subtask</option>
-              {(SUBTASKS_BY_TASK[task.name] || []).map(st => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
+          <Field label="Project Start Date *">
+            <input
+              type="date"
+              className="input"
+              value={form.projectStartDate}
+              onChange={e =>
+                setForm({ ...form, projectStartDate: e.target.value })
+              }
+            />
+          </Field>
 
-            {/* ADD SUBTASK */}
-            <div className="flex gap-2 mb-3">
-              <input
-                placeholder="Add new subtask..."
-                className="border p-2 rounded w-full"
-                value={newSubtask[tIndex] || ''}
-                onChange={e =>
-                  setNewSubtask(prev => ({
-                    ...prev,
-                    [tIndex]: e.target.value
-                  }))
-                }
-              />
-              <button
-                onClick={() => addSubtask(tIndex, newSubtask[tIndex])}
-                className="bg-blue-600 text-white px-3 rounded"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
+          <Field label="PO Date">
+            <input
+              type="date"
+              className="input"
+              value={form.poDate}
+              onChange={e => setForm({ ...form, poDate: e.target.value })}
+            />
+          </Field>
 
-            {/* SUBTASK LIST */}
-            {task.subtasks.map((sub, sIndex) => (
-              <div key={sIndex} className="bg-slate-50 p-3 rounded mb-3">
+          <Field label="Delivery Date *">
+            <input
+              type="date"
+              className="input"
+              value={form.deliveryPeriod}
+              onChange={e =>
+                setForm({ ...form, deliveryPeriod: e.target.value })
+              }
+            />
+          </Field>
+        </div>
 
-                <p className="font-medium">{sub.name}</p>
+        <Field label="Description">
+          <textarea
+            rows={3}
+            className="input"
+            value={form.description}
+            onChange={e =>
+              setForm({ ...form, description: e.target.value })
+            }
+          />
+        </Field>
 
-                {/* SUBTASK DESCRIPTION */}
-                <textarea
-                  placeholder="Subtask description..."
-                  className="border p-2 rounded w-full mb-2"
-                  rows={2}
-                  value={sub.description}
-                  onChange={e =>
-                    updateSubtaskDescription(tIndex, sIndex, e.target.value)
-                  }
-                />
-
-                {/* EMPLOYEE MULTI SELECT */}
-                <label className="text-sm font-medium">Assign Employees</label>
-                <select
-                  multiple
-                  className="border p-2 rounded w-full"
-                  value={sub.employeeIds}
-                  onChange={e =>
-                    handleEmployeeSelect(
-                      tIndex,
-                      sIndex,
-                      e.target.selectedOptions
-                    )
-                  }
-                >
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {/* CREATE */}
+        {/* ACTION */}
         <button
-          onClick={() => onCreateMachine(machine)}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg mt-4"
+          onClick={createMachine}
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg mt-6"
         >
-          Create Machine
+          {loading ? 'Creating...' : 'Create Machine'}
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ================= FIELD ================= */
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="text-sm font-medium block mb-1">{label}</label>
+      {children}
     </div>
   );
 }

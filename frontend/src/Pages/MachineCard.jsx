@@ -2,7 +2,6 @@ import React from 'react';
 import { ChevronRight, Activity } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-// Machine Card Component
 export default function MachineCard({ machine, onClick }) {
   return (
     <div
@@ -24,6 +23,7 @@ export default function MachineCard({ machine, onClick }) {
     >
       <div className="p-6">
 
+        {/* ================= HEADER ================= */}
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition">
@@ -34,14 +34,17 @@ export default function MachineCard({ machine, onClick }) {
               ID: {machine.id}
             </p>
 
-            <p className="text-sm text-slate-600 mt-1">
-              Client: {machine.client}
-            </p>
+            {machine.client && (
+              <p className="text-sm text-slate-600 mt-1">
+                Client: {machine.client}
+              </p>
+            )}
           </div>
 
           <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
         </div>
 
+        {/* ================= PROGRESS ================= */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs font-medium text-slate-600">
@@ -61,11 +64,12 @@ export default function MachineCard({ machine, onClick }) {
           </div>
         </div>
 
+        {/* ================= STATUS ================= */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Activity className="w-4 h-4" />
             <span className="font-medium">
-              {machine.currentStage}
+              {machine.status.replace('_', ' ')}
             </span>
           </div>
 

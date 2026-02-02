@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  UserPlus,
   ShieldCheck,
   Pencil,
   X
 } from 'lucide-react';
 
-/*
-  Props expected:
-  employees, setEmployees
-  users, setUsers
-  onBack (optional – for router compatibility)
-*/
+const API_BASE_URL = 'http://localhost:8080/api';
 
 export default function UsersPage({
   employees,
@@ -28,106 +22,142 @@ export default function UsersPage({
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const [managerData, setManagerData] = useState({
-    name: '',
+    username: '',
     email: '',
-    password: ''
+    password: '',
+    fullName: '',
+    phoneNumber: ''
   });
 
   const [filter, setFilter] = useState('all'); // all | manager
   const [search, setSearch] = useState('');
 
+  const token = localStorage.getItem('token');
+
+  /* ================= LOAD DATA ================= */
+  useEffect(() => {
+    loadEmployees();
+    loadManagers();
+  }, []);
+
+  const loadEmployees = async () => {
+    const res = await fetch(`${API_BASE_URL}/admin/employees`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    setEmployees(data);
+  };
+
+  const loadManagers = async () => {
+    const res = await fetch(`${API_BASE_URL}/admin/managers`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    setUsers(data);
+  };
+
   /* ================= ADD EMPLOYEE ================= */
-  const addEmployee = () => {
+  const addEmployee = async () => {
     if (!newEmployeeName.trim()) return;
 
-    setEmployees([
-      ...employees,
-      {
-        id: `emp_${Date.now()}`,
-        name: newEmployeeName,
-        hasUser: false,
-        role: 'employee'
-      }
-    ]);
+    await fetch(`${API_BASE_URL}/admin/employees`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: newEmployeeName })
+    });
 
     setNewEmployeeName('');
+    loadEmployees();
   };
 
   /* ================= OPEN CREATE MANAGER ================= */
   const openCreateManager = (emp) => {
     setSelectedEmployee(emp);
     setEditingManager(null);
-    setManagerData({ name: '', email: '', password: '' });
+    setManagerData({
+      username: '',
+      email: '',
+      password: '',
+      fullName: '',
+      phoneNumber: ''
+    });
     setShowModal(true);
   };
 
   /* ================= OPEN EDIT MANAGER ================= */
   const openEditManager = (manager) => {
     setEditingManager(manager);
-    setSelectedEmployee(
-      employees.find(e => e.id === manager.employeeId)
-    );
+    setSelectedEmployee(null);
 
     setManagerData({
-      name: manager.name,
+      username: manager.username,
       email: manager.email,
-      password: manager.password
+      password: '',
+      fullName: manager.fullName,
+      phoneNumber: manager.phoneNumber || ''
     });
 
     setShowModal(true);
   };
 
   /* ================= SAVE MANAGER ================= */
-  const saveManager = () => {
-    const { name, email, password } = managerData;
-    if (!name || !email || !password) return;
+  const saveManager = async () => {
+  const { username, email, password, fullName, phoneNumber } = managerData;
 
-    if (editingManager) {
-      // UPDATE
-      setUsers(
-        users.map(u =>
-          u.id === editingManager.id
-            ? { ...u, name, email, password }
-            : u
-        )
-      );
-    } else {
-      // CREATE
-      setUsers([
-        ...users,
-        {
-          id: `user_${Date.now()}`,
-          name,
-          email,
-          password,
-          role: 'manager',
-          employeeId: selectedEmployee.id
-        }
-      ]);
+  if (!email || !fullName || (!editingManager && !password)) return;
 
-      setEmployees(
-        employees.map(e =>
-          e.id === selectedEmployee.id
-            ? { ...e, hasUser: true, role: 'manager' }
-            : e
-        )
-      );
-    }
+  if (editingManager) {
+    await fetch(`${API_BASE_URL}/admin/managers/${editingManager.id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fullName, email, phoneNumber })
+    });
+  } else {
+    await fetch(`${API_BASE_URL}/admin/managers`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username,
+        email,
+        password,
+        fullName,
+        phoneNumber
+      })
+    });
+  }
 
-    closeModal();
-  };
+  closeModal();
+  loadManagers();
+  loadEmployees(); // ✅ THIS FIXES EVERYTHING
+};
+
 
   /* ================= CLOSE MODAL ================= */
   const closeModal = () => {
     setShowModal(false);
     setEditingManager(null);
     setSelectedEmployee(null);
-    setManagerData({ name: '', email: '', password: '' });
+    setManagerData({
+      username: '',
+      email: '',
+      password: '',
+      fullName: '',
+      phoneNumber: ''
+    });
   };
 
   /* ================= HELPERS ================= */
-  const getManager = (empId) =>
-    users.find(u => u.employeeId === empId);
+  const getManager = (empName) =>
+    users.find(u => u.fullName === empName);
 
   /* ================= FILTER + SEARCH ================= */
   const filteredEmployees = employees.filter(emp => {
@@ -135,7 +165,7 @@ export default function UsersPage({
       emp.name?.toLowerCase().includes(search.toLowerCase());
 
     if (filter === 'manager') {
-      return emp.role === 'manager' && matchesSearch;
+      return getManager(emp.name) && matchesSearch;
     }
 
     return matchesSearch;
@@ -217,7 +247,7 @@ export default function UsersPage({
       {/* EMPLOYEE LIST */}
       <div className="space-y-3">
         {filteredEmployees.map(emp => {
-          const manager = getManager(emp.id);
+          const manager = getManager(emp.name);
 
           return (
             <div
@@ -227,11 +257,11 @@ export default function UsersPage({
               <div>
                 <p className="font-medium">{emp.name}</p>
                 <p className="text-sm text-slate-500">
-                  {emp.hasUser ? 'Manager' : 'Employee'}
+                  {manager ? 'Manager' : 'Employee'}
                 </p>
               </div>
 
-              {!emp.hasUser ? (
+              {!manager ? (
                 <button
                   onClick={() => openCreateManager(emp)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg flex gap-2"
@@ -268,15 +298,23 @@ export default function UsersPage({
             </h2>
 
             <div className="space-y-3">
+              {!editingManager && (
+                <input
+                  placeholder="Username"
+                  className="w-full border px-3 py-2 rounded-lg"
+                  value={managerData.username}
+                  onChange={(e) =>
+                    setManagerData({ ...managerData, username: e.target.value })
+                  }
+                />
+              )}
+
               <input
-                placeholder="Name"
+                placeholder="Full Name"
                 className="w-full border px-3 py-2 rounded-lg"
-                value={managerData.name}
+                value={managerData.fullName}
                 onChange={(e) =>
-                  setManagerData({
-                    ...managerData,
-                    name: e.target.value
-                  })
+                  setManagerData({ ...managerData, fullName: e.target.value })
                 }
               />
 
@@ -285,23 +323,28 @@ export default function UsersPage({
                 className="w-full border px-3 py-2 rounded-lg"
                 value={managerData.email}
                 onChange={(e) =>
-                  setManagerData({
-                    ...managerData,
-                    email: e.target.value
-                  })
+                  setManagerData({ ...managerData, email: e.target.value })
                 }
               />
 
+              {!editingManager && (
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="w-full border px-3 py-2 rounded-lg"
+                  value={managerData.password}
+                  onChange={(e) =>
+                    setManagerData({ ...managerData, password: e.target.value })
+                  }
+                />
+              )}
+
               <input
-                type="password"
-                placeholder="Password"
+                placeholder="Phone Number"
                 className="w-full border px-3 py-2 rounded-lg"
-                value={managerData.password}
+                value={managerData.phoneNumber}
                 onChange={(e) =>
-                  setManagerData({
-                    ...managerData,
-                    password: e.target.value
-                  })
+                  setManagerData({ ...managerData, phoneNumber: e.target.value })
                 }
               />
 

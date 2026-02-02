@@ -1,13 +1,36 @@
 import React from 'react';
 
-// Status Badge Component
+const STATUS_CONFIG = {
+  NOT_STARTED: {
+    label: 'Not Started',
+    className: 'bg-slate-100 text-slate-600 border-slate-200'
+  },
+  IN_PROGRESS: {
+    label: 'In Progress',
+    className: 'bg-yellow-100 text-yellow-700 border-yellow-200'
+  },
+  COMPLETED: {
+    label: 'Completed',
+    className: 'bg-green-100 text-green-700 border-green-200'
+  },
+  ON_HOLD: {
+    label: 'On Hold',
+    className: 'bg-red-100 text-red-700 border-red-200'
+  },
+  CANCELLED: {
+    label: 'Cancelled',
+    className: 'bg-gray-200 text-gray-700 border-gray-300'
+  },
+  DELIVERED: {
+    label: 'Delivered',
+    className: 'bg-blue-100 text-blue-700 border-blue-200'
+  }
+};
+
 export default function StatusBadge({ status }) {
-  const config = {
-    'On Track': 'bg-green-100 text-green-700 border-green-200',
-    'Delayed': 'bg-red-100 text-red-700 border-red-200',
-    'Completed': 'bg-blue-100 text-blue-700 border-blue-200',
-    'In Progress': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    'Not Started': 'bg-slate-100 text-slate-600 border-slate-200'
+  const config = STATUS_CONFIG[status] || {
+    label: status?.replace('_', ' ') || 'Unknown',
+    className: 'bg-slate-100 text-slate-600 border-slate-200'
   };
 
   return (
@@ -23,10 +46,10 @@ export default function StatusBadge({ status }) {
         font-semibold
         border
         whitespace-nowrap
-        ${config[status] || config['Not Started']}
+        ${config.className}
       `}
     >
-      {status}
+      {config.label}
     </span>
   );
 }

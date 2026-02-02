@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Package,
   LogOut,
@@ -9,8 +9,9 @@ import {
 
 import MachineCard from './MachineCard';
 
+const API_BASE_URL = 'http://localhost:8080/api';
+
 export default function AdminDashboard({
-  machines = [],
   currentUser,
   onSelectMachine,
   onLogout,
@@ -19,7 +20,41 @@ export default function AdminDashboard({
   onOpenUsers,
   onAddMachineNavigate
 }) {
+  const [machines, setMachines] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+
+  /* ================= FETCH MACHINES ================= */
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+
+    fetch(`${API_BASE_URL}/admin/machines`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load machines');
+        return res.json();
+      })
+      .then(data => {
+        const mapped = data.map(m => ({
+          id: m.machineId,          // business id
+          dbId: m.id,               // database id
+          name: m.machineName,
+          status: m.status,
+          progress: m.overallProgress ?? 0,
+          assignedManager: m.assignedManager ?? '—',
+          client: m.clientName ?? ''
+        }));
+        setMachines(mapped);
+      })
+      .catch(err => {
+        console.error('Error loading machines:', err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   /* ================= FILTER BY STATUS ================= */
   const statusFilteredMachines =
@@ -33,16 +68,15 @@ export default function AdminDashboard({
   const filteredMachines = statusFilteredMachines.filter(
     m =>
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   /* ================= STATS ================= */
   const stats = {
     total: machines.length,
-    'On Track': machines.filter(m => m.status === 'On Track').length,
-    Delayed: machines.filter(m => m.status === 'Delayed').length,
-    Completed: machines.filter(m => m.progress === 100).length,
+    inProgress: machines.filter(m => m.status === 'IN_PROGRESS').length,
+    onHold: machines.filter(m => m.status === 'ON_HOLD').length,
+    completed: machines.filter(m => m.progress === 100).length,
     avgProgress:
       machines.length > 0
         ? Math.round(
@@ -50,6 +84,10 @@ export default function AdminDashboard({
           )
         : 0
   };
+
+  if (loading) {
+    return <div className="p-6">Loading machines...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -74,7 +112,7 @@ export default function AdminDashboard({
             </button>
 
             <div className="text-right">
-              <p className="font-medium">{currentUser?.name}</p>
+              <p className="font-medium">{currentUser?.fullName}</p>
               <p className="text-xs text-slate-500">Admin</p>
             </div>
 
@@ -93,35 +131,11 @@ export default function AdminDashboard({
 
         {/* ================= STATS ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <Stat
-            title="Total"
-            value={stats.total}
-            active={statusFilter === 'all'}
-            onClick={() => setStatusFilter('all')}
-          />
-          <Stat
-            title="On Track"
-            value={stats['On Track']}
-            active={statusFilter === 'On Track'}
-            onClick={() => setStatusFilter('On Track')}
-          />
-          <Stat
-            title="Delayed"
-            value={stats.Delayed}
-            active={statusFilter === 'Delayed'}
-            onClick={() => setStatusFilter('Delayed')}
-          />
-          <Stat
-            title="Completed"
-            value={stats.Completed}
-            active={statusFilter === 'completed'}
-            onClick={() => setStatusFilter('completed')}
-          />
-          <Stat
-            title="Avg Progress"
-            value={`${stats.avgProgress}%`}
-            disabled
-          />
+          <Stat title="Total" value={stats.total} active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+          <Stat title="In Progress" value={stats.inProgress} active={statusFilter === 'IN_PROGRESS'} onClick={() => setStatusFilter('IN_PROGRESS')} />
+          <Stat title="On Hold" value={stats.onHold} active={statusFilter === 'ON_HOLD'} onClick={() => setStatusFilter('ON_HOLD')} />
+          <Stat title="Completed" value={stats.completed} active={statusFilter === 'completed'} onClick={() => setStatusFilter('completed')} />
+          <Stat title="Avg Progress" value={`${stats.avgProgress}%`} disabled />
         </div>
 
         {/* ================= SEARCH ================= */}
@@ -139,7 +153,7 @@ export default function AdminDashboard({
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {filteredMachines.map(machine => (
             <MachineCard
-              key={machine.id}
+              key={machine.dbId}
               machine={machine}
               onClick={() => onSelectMachine(machine)}
             />

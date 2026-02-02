@@ -1,21 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { mockMachines, USERS } from '../data/machines';
 
 import LoginPage from './LoginPage';
 import AdminDashboard from './AdminDashboard';
 import ManagerDashboard from './ManagerDashboard';
 import MachineDetailPage from './MachineDetailPage';
-import StageTasksPage from './StageTasksPage';
+import StageTasksPage from './SubTasksPage';
 import UsersPage from './UsersPage';
 import AddMachine from './AddMachine';
+
+const API_BASE_URL = 'http://localhost:8080/api';
 
 export default function JEMSTracker() {
   const navigate = useNavigate();
 
-  /* ================= STATE ================= */
   const [currentUser, setCurrentUser] = useState(null);
-  const [machines, setMachines] = useState(mockMachines);
+  const [loading, setLoading] = useState(true);
+
+  const [machines, setMachines] = useState([]);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [selectedStage, setSelectedStage] = useState(null);
 
@@ -23,126 +25,81 @@ export default function JEMSTracker() {
   const [employees, setEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  /* ================= LOGIN ================= */
-  const handleLogin = (userId, password) => {
-    const user = USERS[userId];
-    if (user && user.password === password) {
-      setCurrentUser(user);
-      navigate(user.role === 'admin' ? '/admin' : '/manager');
-      return true;
+  /* ================= TOKEN VALIDATION ================= */
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setLoading(false);
+      return;
     }
-    return false;
-  };
 
-  /* ================= TASK UPDATE ================= */
-  const updateTaskStatus = (
-    machineId,
-    stageKey,
-    taskId,
-    status,
-    remarks,
-    assignedTo
-  ) => {
-    setMachines(prev =>
-      prev.map(m =>
-        m.id === machineId
-          ? {
-              ...m,
-              stages: {
-                ...m.stages,
-                [stageKey]: {
-                  ...m.stages[stageKey],
-                  subtasks: m.stages[stageKey].subtasks.map(t =>
-                    t.id === taskId
-                      ? {
-                          ...t,
-                          status,
-                          remarks: remarks ?? t.remarks,
-                          assignedTo: assignedTo ?? t.assignedTo
-                        }
-                      : t
-                  )
-                }
-              }
-            }
-          : m
-      )
-    );
-  };
-
-  /* ================= ADD STAGE ================= */
-  const addStage = (machineId, name) => {
-    setMachines(prev =>
-      prev.map(m =>
-        m.id === machineId
-          ? {
-              ...m,
-              stages: {
-                ...m.stages,
-                [name.toLowerCase().replace(/\s/g, '')]: {
-                  name,
-                  status: 'Not Started',
-                  subtasks: []
-                }
-              }
-            }
-          : m
-      )
-    );
-  };
-
-  /* ================= ADD SUBTASK ================= */
-  const addSubtask = (machineId, stageKey, name) => {
-    setMachines(prev =>
-      prev.map(m =>
-        m.id === machineId
-          ? {
-              ...m,
-              stages: {
-                ...m.stages,
-                [stageKey]: {
-                  ...m.stages[stageKey],
-                  subtasks: [
-                    ...m.stages[stageKey].subtasks,
-                    {
-                      id: Date.now().toString(),
-                      name,
-                      status: 'Not Started',
-                      assignedTo: ''
-                    }
-                  ]
-                }
-              }
-            }
-          : m
-      )
-    );
-  };
-
-  /* ================= ADD MACHINE ================= */
-  const addMachine = (machine) => {
-    setMachines(prev => [
-      ...prev,
-      {
-        ...machine,
-        status: 'On Track',
-        progress: 0,
-        stages: {}
+    fetch(`${API_BASE_URL}/auth/validate`, {
+      headers: {
+        Authorization: `Bearer ${token}`
       }
-    ]);
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Invalid token');
+        return res.json();
+      })
+      .then(user => {
+        setCurrentUser(user);
+      })
+      .catch(() => {
+        localStorage.clear();
+        setCurrentUser(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  /* ================= LOGIN ================= */
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+
+    if (user.roles?.includes('ADMIN')) {
+      navigate('/admin');
+    } else if (user.roles?.includes('MANAGER')) {
+      navigate('/manager');
+    }
   };
+
+  /* ================= LOGOUT ================= */
+  const handleLogout = () => {
+    localStorage.clear();
+    setCurrentUser(null);
+    navigate('/');
+  };
+
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
 
   return (
     <Routes>
 
-      {/* ================= LOGIN ================= */}
-      <Route path="/" element={<LoginPage onLogin={handleLogin} />} />
+      {/* LOGIN */}
+      <Route
+        path="/"
+        element={
+          currentUser ? (
+            <Navigate
+              to={
+                currentUser.roles.includes('ADMIN')
+                  ? '/admin'
+                  : '/manager'
+              }
+            />
+          ) : (
+            <LoginPage onLogin={handleLogin} />
+          )
+        }
+      />
 
-      {/* ================= ADMIN ================= */}
+      {/* ADMIN */}
       <Route
         path="/admin"
         element={
-          currentUser?.role === 'admin' ? (
+          currentUser?.roles?.includes('ADMIN') ? (
             <AdminDashboard
               machines={machines}
               currentUser={currentUser}
@@ -154,42 +111,35 @@ export default function JEMSTracker() {
               }}
               onOpenUsers={() => navigate('/users')}
               onAddMachineNavigate={() => navigate('/add-machine')}
-              onLogout={() => {
-                setCurrentUser(null);
-                navigate('/');
-              }}
+              onLogout={handleLogout}
             />
-          ) : (
-            <Navigate to="/" />
-          )
+          ) : <Navigate to="/" />
         }
       />
 
-      {/* ================= ADD MACHINE ================= */}
+      {/* ADD MACHINE */}
       <Route
         path="/add-machine"
         element={
-          currentUser?.role === 'admin' ? (
+          currentUser?.roles?.includes('ADMIN') ? (
             <AddMachine
               employees={employees}
               managers={managers}
               onBack={() => navigate('/admin')}
-              onCreateMachine={(newMachine) => {
-                addMachine(newMachine);
+              onCreateMachine={(m) => {
+                setMachines(prev => [...prev, m]);
                 navigate('/admin');
               }}
             />
-          ) : (
-            <Navigate to="/" />
-          )
+          ) : <Navigate to="/" />
         }
       />
 
-      {/* ================= MANAGER ================= */}
+      {/* MANAGER */}
       <Route
         path="/manager"
         element={
-          currentUser?.role === 'manager' ? (
+          currentUser?.roles?.includes('MANAGER') ? (
             <ManagerDashboard
               machines={machines}
               currentUser={currentUser}
@@ -197,36 +147,30 @@ export default function JEMSTracker() {
                 setSelectedMachine(m);
                 navigate('/machine');
               }}
-              onLogout={() => {
-                setCurrentUser(null);
-                navigate('/');
-              }}
+              onLogout={handleLogout}
             />
-          ) : (
-            <Navigate to="/" />
-          )
+          ) : <Navigate to="/" />
         }
       />
 
-      {/* ================= USERS ================= */}
+      {/* USERS */}
       <Route
         path="/users"
         element={
-          currentUser?.role === 'admin' ? (
-            <UsersPage
-              employees={employees}
-              setEmployees={setEmployees}
-              managers={managers}
-              setManagers={setManagers}
-              onBack={() => navigate('/admin')}
-            />
-          ) : (
-            <Navigate to="/" />
-          )
+          currentUser?.roles?.includes('ADMIN') ? (
+           <UsersPage
+  employees={employees}
+  setEmployees={setEmployees}
+  users={managers}
+  setUsers={setManagers}
+  onBack={() => navigate('/admin')}
+/>
+
+          ) : <Navigate to="/" />
         }
       />
 
-      {/* ================= MACHINE ================= */}
+      {/* MACHINE */}
       <Route
         path="/machine"
         element={
@@ -235,21 +179,22 @@ export default function JEMSTracker() {
               machine={selectedMachine}
               currentUser={currentUser}
               onBack={() =>
-                navigate(currentUser?.role === 'admin' ? '/admin' : '/manager')
+                navigate(
+                  currentUser.roles.includes('ADMIN')
+                    ? '/admin'
+                    : '/manager'
+                )
               }
-              onOpenStage={(key) => {
-                setSelectedStage(key);
+              onOpenStage={(stageKey) => {
+                setSelectedStage(stageKey);
                 navigate('/stage');
               }}
-              onAddStage={addStage}
             />
-          ) : (
-            <Navigate to="/admin" />
-          )
+          ) : <Navigate to="/" />
         }
       />
 
-      {/* ================= STAGE ================= */}
+      {/* STAGE */}
       <Route
         path="/stage"
         element={
@@ -259,18 +204,12 @@ export default function JEMSTracker() {
               stageKey={selectedStage}
               currentUser={currentUser}
               onBack={() => navigate('/machine')}
-              onUpdateTask={updateTaskStatus}
-              onAddSubtask={addSubtask}
             />
-          ) : (
-            <Navigate to="/admin" />
-          )
+          ) : <Navigate to="/" />
         }
       />
 
-      {/* ================= FALLBACK ================= */}
       <Route path="*" element={<Navigate to="/" />} />
-
     </Routes>
   );
 }
