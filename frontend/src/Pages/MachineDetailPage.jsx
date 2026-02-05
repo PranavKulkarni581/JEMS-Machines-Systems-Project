@@ -8,45 +8,103 @@ const API_BASE_URL = 'http://localhost:8080/api';
 function AddTaskModal({ machineId, onClose, onCreated }) {
   const token = localStorage.getItem('token');
 
+  const [employees, setEmployees] = useState([]);
+  const [managers, setManagers] = useState([]);
+
   const [form, setForm] = useState({
     stageName: '',
     stageNumber: '',
     description: '',
     checkedBy: '',
     approvedBy: '',
-    assignedTo: '',
+    assignedToName: '',
+    assignedToId: '',
     startDate: '',
     endDate: ''
   });
+
+  useEffect(() => {
+    loadAssignees();
+  }, []);
+
+  /* ================= LOAD EMPLOYEES + MANAGERS ================= */
+  const loadAssignees = async () => {
+    try {
+      const [empRes, mgrRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/admin/employees`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/admin/managers`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      setEmployees(await empRes.json());
+      setManagers(await mgrRes.json());
+    } catch (err) {
+      console.error('Failed to load assignees', err);
+    }
+  };
+
+  const assignees = [
+    ...employees.map(e => ({
+      id: e.id.toString(),
+      name: e.name,
+      role: 'Employee'
+    })),
+    ...managers.map(m => ({
+      id: m.id.toString(),
+      name: m.fullName,
+      role: 'Manager'
+    }))
+  ];
 
   const isValid =
     form.stageName &&
     form.stageNumber &&
     form.startDate &&
-    form.endDate;
+    form.endDate &&
+    form.assignedToId;
 
+  /* ================= CREATE TASK ================= */
   const createTask = async () => {
-    if (!isValid) return;
+    try {
+      const payload = {
+        stageName: form.stageName,
+        stageNumber: form.stageNumber,
+        description: form.description,
+        checkedBy: form.checkedBy,
+        approvedBy: form.approvedBy,
+        assignedTo: form.assignedToName, // ✅ BACKEND EXPECTS NAME
+        startDate: `${form.startDate}T00:00:00`,
+        endDate: `${form.endDate}T00:00:00`
+      };
 
-    const res = await fetch(
-      `${API_BASE_URL}/admin/machines/${machineId}/tasks`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(form)
+      const res = await fetch(
+        `${API_BASE_URL}/admin/machines/${machineId}/tasks`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(err);
+        alert('Failed to create task');
+        return;
       }
-    );
 
-    if (!res.ok) {
-      alert('Failed to create task');
-      return;
+      onCreated();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert('Unexpected error while creating task');
     }
-
-    onCreated();
-    onClose();
   };
 
   return (
@@ -60,52 +118,95 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
 
         <div className="space-y-3">
           <input
-            placeholder="Stage Name (Design, Assembly...)"
+            placeholder="Stage Name"
             className="input"
-            onChange={e => setForm({ ...form, stageName: e.target.value })}
+            value={form.stageName}
+            onChange={e =>
+              setForm(prev => ({ ...prev, stageName: e.target.value }))
+            }
           />
 
           <input
             placeholder="Stage Number"
             className="input"
-            onChange={e => setForm({ ...form, stageNumber: e.target.value })}
+            value={form.stageNumber}
+            onChange={e =>
+              setForm(prev => ({ ...prev, stageNumber: e.target.value }))
+            }
           />
 
           <textarea
             placeholder="Description"
             className="input"
             rows={2}
-            onChange={e => setForm({ ...form, description: e.target.value })}
+            value={form.description}
+            onChange={e =>
+              setForm(prev => ({ ...prev, description: e.target.value }))
+            }
           />
 
           <input
             placeholder="Checked By"
             className="input"
-            onChange={e => setForm({ ...form, checkedBy: e.target.value })}
+            value={form.checkedBy}
+            onChange={e =>
+              setForm(prev => ({ ...prev, checkedBy: e.target.value }))
+            }
           />
 
           <input
             placeholder="Approved By"
             className="input"
-            onChange={e => setForm({ ...form, approvedBy: e.target.value })}
+            value={form.approvedBy}
+            onChange={e =>
+              setForm(prev => ({ ...prev, approvedBy: e.target.value }))
+            }
           />
 
-          <input
-            placeholder="Assigned To"
+          {/* ✅ SAME DROPDOWN PATTERN AS SUBTASKS */}
+          <select
             className="input"
-            onChange={e => setForm({ ...form, assignedTo: e.target.value })}
-          />
+            value={form.assignedToId}
+            onChange={e => {
+              const selected = assignees.find(
+                a => a.id === e.target.value
+              );
+              if (!selected) return;
+
+              setForm(prev => ({
+                ...prev,
+                assignedToId: selected.id,
+                assignedToName: selected.name
+              }));
+            }}
+          >
+            <option value="" disabled>
+              Assign To (Employee / Manager)
+            </option>
+
+            {assignees.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.role})
+              </option>
+            ))}
+          </select>
 
           <div className="grid grid-cols-2 gap-3">
             <input
               type="date"
               className="input"
-              onChange={e => setForm({ ...form, startDate: e.target.value })}
+              value={form.startDate}
+              onChange={e =>
+                setForm(prev => ({ ...prev, startDate: e.target.value }))
+              }
             />
             <input
               type="date"
               className="input"
-              onChange={e => setForm({ ...form, endDate: e.target.value })}
+              value={form.endDate}
+              onChange={e =>
+                setForm(prev => ({ ...prev, endDate: e.target.value }))
+              }
             />
           </div>
 
@@ -151,8 +252,6 @@ export default function MachineDetailPage({
 
   return (
     <div className="min-h-screen bg-slate-50">
-
-      {/* HEADER */}
       <header className="bg-white border-b shadow-sm">
         <div className="px-6 py-4 flex justify-between">
           <div className="flex gap-4 items-center">
@@ -161,16 +260,13 @@ export default function MachineDetailPage({
             </button>
             <div>
               <h1 className="font-bold text-xl">{machine.machineName}</h1>
-              <p className="text-sm text-slate-500">
-                {machine.machineId}
-              </p>
+              <p className="text-sm text-slate-500">{machine.machineId}</p>
             </div>
           </div>
           <button onClick={onLogout}><LogOut /></button>
         </div>
       </header>
 
-      {/* TASKS */}
       <div className="p-6 space-y-4">
         {tasks.map(task => (
           <div
@@ -182,9 +278,12 @@ export default function MachineDetailPage({
               <h3 className="font-semibold">{task.stageName}</h3>
               <StatusBadge status={task.status} />
             </div>
-            <p className="text-sm text-slate-500 mt-1">
-              {task.description}
-            </p>
+
+            {task.assignedTo && (
+              <p className="text-xs mt-1 text-slate-500">
+                Assigned to <b>{task.assignedTo}</b>
+              </p>
+            )}
           </div>
         ))}
 
@@ -193,7 +292,8 @@ export default function MachineDetailPage({
             onClick={() => setShowAddTask(true)}
             className="w-full bg-blue-600 text-white py-3 rounded-lg flex justify-center gap-2"
           >
-            <Plus size={16} /> Add Task
+            <Plus size={16} />
+            Add Task
           </button>
         )}
       </div>

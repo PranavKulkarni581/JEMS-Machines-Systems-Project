@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Package,
-  LogOut,
-  Clock,
-  CheckCircle
-} from 'lucide-react';
-
+import { Package, LogOut, CheckCircle } from 'lucide-react';
 import MachineCard from './MachineCard';
 import StatusBadge from './StatusBadge';
+import ManagerTask from './ManagerTask';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -22,52 +17,77 @@ export default function ManagerDashboard({
 
   const token = localStorage.getItem('token');
 
-  /* ================= LOAD ASSIGNED MACHINES ================= */
+  /* ================= LOAD DASHBOARD ================= */
   useEffect(() => {
-    fetch(`${API_BASE_URL}/manager/machines/assigned`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to load machines');
-        return res.json();
-      })
-      .then(async (machineList) => {
-        setMachines(machineList);
+    const loadDashboard = async () => {
+      try {
+        /* 1️⃣ Machines assigned to this manager */
+        const res = await fetch(
+          `${API_BASE_URL}/manager/machines/assigned`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
 
-        /* Load details to extract subtasks */
-        const allSubtasks = [];
+        if (!res.ok) throw new Error('Failed to load assigned machines');
+        const assignedMachines = await res.json();
 
-        for (const m of machineList) {
-          const res = await fetch(
+        const allMachines = [];
+        const allPending = [];
+
+        /* 2️⃣ Fetch details for each machine */
+        for (const m of assignedMachines) {
+          const dRes = await fetch(
             `${API_BASE_URL}/manager/machines/${m.machineId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
           );
 
-          if (!res.ok) continue;
-          const details = await res.json();
+          if (!dRes.ok) continue;
+          const details = await dRes.json();
+
+          /* Manager owns this machine → full edit rights */
+          const canEditMachine = true;
 
           details.tasks.forEach(task => {
             task.subTasks.forEach(sub => {
               if (sub.status !== 'COMPLETED') {
-                allSubtasks.push({
+                allPending.push({
                   ...sub,
                   taskId: task.id,
                   stageName: task.stageName,
                   machineId: details.machineId,
                   machineName: details.machineName,
-                  client: details.clientName
+                  client: details.clientName,
+                  canEdit: canEditMachine
                 });
               }
             });
           });
+
+          allMachines.push({
+            machineId: details.machineId,
+            machineName: details.machineName,
+            overallProgress: details.overallProgress,
+            status: details.status
+          });
         }
 
-        setPendingSubtasks(allSubtasks);
-      })
-      .catch(err => {
+        setMachines(allMachines);
+        setPendingSubtasks(allPending);
+      } catch (err) {
         console.error(err);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
   }, [token]);
 
   if (loading) {
@@ -76,7 +96,6 @@ export default function ManagerDashboard({
 
   return (
     <div className="min-h-screen w-full bg-slate-50">
-
       {/* ================= HEADER ================= */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm w-full">
         <div className="w-full px-6 py-4 flex items-center justify-between">
@@ -97,9 +116,7 @@ export default function ManagerDashboard({
               <p className="text-sm font-medium text-slate-700">
                 {currentUser.fullName}
               </p>
-              <p className="text-xs text-slate-500">
-                Manager
-              </p>
+              <p className="text-xs text-slate-500">Manager</p>
             </div>
 
             <button
@@ -115,7 +132,6 @@ export default function ManagerDashboard({
 
       {/* ================= MAIN ================= */}
       <main className="w-full px-6 py-8">
-
         {/* ================= STATS ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
           <StatCard title="Assigned Machines" value={machines.length} />
@@ -156,7 +172,7 @@ export default function ManagerDashboard({
                         name: sub.machineName
                       })
                     }
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     View Details
                   </button>
@@ -201,7 +217,6 @@ export default function ManagerDashboard({
             ))}
           </div>
         </section>
-
       </main>
     </div>
   );

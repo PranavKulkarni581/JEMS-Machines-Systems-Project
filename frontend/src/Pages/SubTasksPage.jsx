@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ChevronRight,
   Plus,
-  X,
-  CheckCircle
+  X
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
@@ -18,24 +17,55 @@ export default function SubTasksPage({
   const [task, setTask] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  const [employees, setEmployees] = useState([]);
+  const [managers, setManagers] = useState([]);
+
   const token = localStorage.getItem('token');
 
   useEffect(() => {
     loadTask();
+    loadAssignees();
   }, []);
 
+  /* ================= LOAD TASK ================= */
   const loadTask = async () => {
     const res = await fetch(
       `${API_BASE_URL}/admin/machines/${machine.id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+
     const data = await res.json();
     const found = data.tasks.find(t => t.id === stageKey);
     setTask(found);
   };
 
-  /* ================= ADD SUBTASK ================= */
+  /* ================= LOAD EMPLOYEES + MANAGERS ================= */
+  const loadAssignees = async () => {
+    const [empRes, mgrRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/admin/employees`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      fetch(`${API_BASE_URL}/admin/managers`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]);
+
+    setEmployees(await empRes.json());
+    setManagers(await mgrRes.json());
+  };
+
+  /* ================= CREATE SUBTASK ================= */
   const createSubtask = async (payload) => {
+    const body = {
+      name: payload.name,
+      description: payload.description,
+      assignedEmployee: payload.assignedEmployee,
+      assignedEmployeeId: Number(payload.assignedEmployeeId),
+      status: 'PENDING',
+      startDate: `${payload.startDate}T00:00:00`,
+      endDate: `${payload.endDate}T00:00:00`
+    };
+
     const res = await fetch(
       `${API_BASE_URL}/admin/machines/${machine.id}/tasks/${task.id}/subtasks`,
       {
@@ -44,16 +74,18 @@ export default function SubTasksPage({
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
       }
     );
 
     if (!res.ok) {
-      alert('Failed to add subtask');
+      const errorText = await res.text();
+      console.error(errorText);
+      alert('Failed to create subtask');
       return;
     }
 
-    loadTask();
+    await loadTask();
     setShowModal(false);
   };
 
@@ -72,7 +104,7 @@ export default function SubTasksPage({
         </div>
       </header>
 
-      {/* SUBTASKS */}
+      {/* SUBTASK LIST */}
       <div className="p-6 space-y-4">
         {task.subTasks?.map(st => (
           <div key={st.id} className="bg-white p-4 rounded-xl shadow border">
@@ -80,7 +112,14 @@ export default function SubTasksPage({
               <h3 className="font-semibold">{st.name}</h3>
               <StatusBadge status={st.status} />
             </div>
+
             <p className="text-sm text-slate-500">{st.description}</p>
+
+            {st.assignedEmployee && (
+              <p className="text-xs mt-2 text-slate-600">
+                Assigned to <b>{st.assignedEmployee}</b>
+              </p>
+            )}
           </div>
         ))}
 
@@ -89,16 +128,18 @@ export default function SubTasksPage({
             onClick={() => setShowModal(true)}
             className="w-full bg-blue-600 text-white py-3 rounded-lg flex gap-2 justify-center"
           >
-            <Plus size={16} /> Add Subtask
+            <Plus size={16} />
+            Add Subtask
           </button>
         )}
       </div>
 
-      {/* ADD SUBTASK MODAL */}
       {showModal && (
         <AddSubtaskModal
           onClose={() => setShowModal(false)}
           onCreate={createSubtask}
+          employees={employees}
+          managers={managers}
         />
       )}
     </div>
@@ -106,7 +147,12 @@ export default function SubTasksPage({
 }
 
 /* ================= ADD SUBTASK MODAL ================= */
-function AddSubtaskModal({ onClose, onCreate }) {
+function AddSubtaskModal({
+  onClose,
+  onCreate,
+  employees,
+  managers
+}) {
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -116,7 +162,31 @@ function AddSubtaskModal({ onClose, onCreate }) {
     endDate: ''
   });
 
+  const assignees = [
+    ...employees.map(e => ({
+      id: e.id.toString(),
+      name: e.name,
+      role: 'Employee'
+    })),
+    ...managers.map(m => ({
+      id: m.id.toString(),
+      name: m.fullName,
+      role: 'Manager'
+    }))
+  ];
+
   const isValid = form.name && form.assignedEmployeeId;
+
+  const handleAssigneeChange = (e) => {
+    const selected = assignees.find(a => a.id === e.target.value);
+    if (!selected) return;
+
+    setForm(prev => ({
+      ...prev,
+      assignedEmployee: selected.name,
+      assignedEmployeeId: selected.id
+    }));
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -131,42 +201,55 @@ function AddSubtaskModal({ onClose, onCreate }) {
           <input
             placeholder="Subtask Name"
             className="input"
-            onChange={e => setForm({ ...form, name: e.target.value })}
+            value={form.name}
+            onChange={e =>
+              setForm(prev => ({ ...prev, name: e.target.value }))
+            }
           />
 
           <textarea
             placeholder="Description"
             className="input"
             rows={2}
-            onChange={e => setForm({ ...form, description: e.target.value })}
-          />
-
-          <input
-            placeholder="Assigned Employee Name"
-            className="input"
+            value={form.description}
             onChange={e =>
-              setForm({ ...form, assignedEmployee: e.target.value })
+              setForm(prev => ({ ...prev, description: e.target.value }))
             }
           />
 
-          <input
-            placeholder="Assigned Employee ID"
+          {/* CONTROLLED DROPDOWN */}
+          <select
             className="input"
-            onChange={e =>
-              setForm({ ...form, assignedEmployeeId: e.target.value })
-            }
-          />
+            value={form.assignedEmployeeId}
+            onChange={handleAssigneeChange}
+          >
+            <option value="" disabled>
+              Select Employee / Manager
+            </option>
+
+            {assignees.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.role})
+              </option>
+            ))}
+          </select>
 
           <div className="grid grid-cols-2 gap-3">
             <input
               type="date"
               className="input"
-              onChange={e => setForm({ ...form, startDate: e.target.value })}
+              value={form.startDate}
+              onChange={e =>
+                setForm(prev => ({ ...prev, startDate: e.target.value }))
+              }
             />
             <input
               type="date"
               className="input"
-              onChange={e => setForm({ ...form, endDate: e.target.value })}
+              value={form.endDate}
+              onChange={e =>
+                setForm(prev => ({ ...prev, endDate: e.target.value }))
+              }
             />
           </div>
 
