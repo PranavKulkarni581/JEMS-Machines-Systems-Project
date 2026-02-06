@@ -21,7 +21,6 @@ export default function JEMSTracker() {
 
   const [machines, setMachines] = useState([]);
   const [selectedMachine, setSelectedMachine] = useState(null);
-  const [selectedStage, setSelectedStage] = useState(null);
 
   const [managers, setManagers] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -63,16 +62,10 @@ export default function JEMSTracker() {
 
   /* ================= LOGOUT ================= */
   const handleLogout = () => {
-  localStorage.clear();
-
-  // 🔥 RESET ROUTE STATE
-  setCurrentUser(null);
-  setSelectedMachine(null);
-  setSelectedStage(null);
-
-  navigate('/', { replace: true });
-};
-
+    localStorage.clear();
+    setCurrentUser(null);
+    navigate('/');
+  };
 
   if (loading) return <div className="p-6">Loading...</div>;
 
@@ -109,7 +102,7 @@ export default function JEMSTracker() {
               setSearchQuery={setSearchQuery}
               onSelectMachine={(m) => {
                 setSelectedMachine(m);
-                navigate('/machine');
+                navigate(`/machine/${m.machineId}`);
               }}
               onOpenUsers={() => navigate('/users')}
               onAddMachineNavigate={() => navigate('/add-machine')}
@@ -146,7 +139,7 @@ export default function JEMSTracker() {
               currentUser={currentUser}
               onSelectMachine={(m) => {
                 setSelectedMachine(m);
-                navigate('/machine');
+                navigate(`/machine/${m.machineId}`);
               }}
               onLogout={handleLogout}
             />
@@ -170,9 +163,9 @@ export default function JEMSTracker() {
         }
       />
 
-      {/* ================= MACHINE (ROLE BASED) ================= */}
+      {/* ================= MACHINE PAGE ================= */}
       <Route
-        path="/machine"
+        path="/machine/:machineId"
         element={
           selectedMachine ? (
             currentUser.roles.includes('ADMIN') ? (
@@ -180,10 +173,9 @@ export default function JEMSTracker() {
                 machine={selectedMachine}
                 currentUser={currentUser}
                 onBack={() => navigate('/admin')}
-                onOpenStage={(stageKey) => {
-                  setSelectedStage(stageKey);
-                  navigate('/stage');
-                }}
+                onOpenStage={(stageId) =>
+                  navigate(`/machine/${selectedMachine.machineId}/stage/${stageId}`)
+                }
                 onLogout={handleLogout}
               />
             ) : (
@@ -192,37 +184,27 @@ export default function JEMSTracker() {
                 currentUser={currentUser}
                 onBack={() => navigate('/manager')}
                 onLogout={handleLogout}
-                onOpenStage={(stageKey) => {
-                  setSelectedStage(stageKey);
-                  navigate('/stage');
-                }}
               />
             )
           ) : <Navigate to="/" />
         }
       />
 
-      {/* ================= STAGE (ROLE BASED) ================= */}
+      {/* ================= STAGE / SUBTASK ================= */}
       <Route
-        path="/stage"
+        path="/machine/:machineId/stage/:stageId"
         element={
-          selectedStage ? (
-            currentUser?.roles?.includes('ADMIN') ? (
-              <StageTasksPage
-                machine={selectedMachine}
-                stageKey={selectedStage}
-                currentUser={currentUser}
-                onBack={() => navigate('/machine')}
-              />
-            ) : (
-              <ManagerSubTasks
-                machine={selectedMachine}
-                stageKey={selectedStage}
-                currentUser={currentUser}
-                onBack={() => navigate('/machine')}
-              />
-            )
-          ) : <Navigate to="/" />
+          currentUser?.roles?.includes('ADMIN') ? (
+            <StageTasksPage
+              currentUser={currentUser}
+              onBack={() => navigate(-1)}
+            />
+          ) : (
+            <ManagerSubTasks
+              currentUser={currentUser}
+              onBack={() => navigate(-1)}
+            />
+          )
         }
       />
 
