@@ -39,15 +39,19 @@ export default function AdminDashboard({
         return res.json();
       })
       .then(data => {
+        console.log('Fetched machines:', data); // Debug log
+        
         const mapped = data.map(m => ({
-          id: m.machineId,          // business id
-          dbId: m.id,               // database id
+          id: m.id,                    // database id (for reference)
+          machineId: m.machineId,      // business id (M-2024-001) - USE THIS FOR API CALLS
           name: m.machineName,
           status: m.status,
           progress: m.overallProgress ?? 0,
           assignedManager: m.assignedManager ?? '—',
           client: m.clientName ?? ''
         }));
+        
+        console.log('Mapped machines:', mapped); // Debug log
         setMachines(mapped);
       })
       .catch(err => {
@@ -68,7 +72,7 @@ export default function AdminDashboard({
   const filteredMachines = statusFilteredMachines.filter(
     m =>
       m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.id.toLowerCase().includes(searchQuery.toLowerCase())
+      m.machineId.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   /* ================= STATS ================= */
@@ -153,9 +157,12 @@ export default function AdminDashboard({
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {filteredMachines.map(machine => (
             <MachineCard
-              key={machine.dbId}
+              key={machine.id}
               machine={machine}
-              onClick={() => onSelectMachine(machine)}
+              onClick={() => {
+                console.log('Selecting machine:', machine); // Debug log
+                onSelectMachine(machine);
+              }}
             />
           ))}
 

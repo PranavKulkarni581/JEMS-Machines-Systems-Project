@@ -100,9 +100,11 @@ export default function JEMSTracker() {
               currentUser={currentUser}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              onSelectMachine={(m) => {
-                setSelectedMachine(m);
-                navigate(`/machine/${m.machineId}`);
+              onSelectMachine={(machine) => {
+                console.log('Router: Navigating to machine:', machine.machineId); // Debug
+                setSelectedMachine(machine);
+                // Use business machineId (e.g., "M-2024-001") for URL
+                navigate(`/machine/${machine.machineId}`);
               }}
               onOpenUsers={() => navigate('/users')}
               onAddMachineNavigate={() => navigate('/add-machine')}
@@ -137,9 +139,9 @@ export default function JEMSTracker() {
           currentUser?.roles?.includes('MANAGER') ? (
             <ManagerDashboard
               currentUser={currentUser}
-              onSelectMachine={(m) => {
-                setSelectedMachine(m);
-                navigate(`/machine/${m.machineId}`);
+              onSelectMachine={(machine) => {
+                setSelectedMachine(machine);
+                navigate(`/machine/${machine.machineId}`);
               }}
               onLogout={handleLogout}
             />
@@ -167,20 +169,20 @@ export default function JEMSTracker() {
       <Route
         path="/machine/:machineId"
         element={
-          selectedMachine ? (
+          currentUser ? (
             currentUser.roles.includes('ADMIN') ? (
               <MachineDetailPage
-                machine={selectedMachine}
                 currentUser={currentUser}
                 onBack={() => navigate('/admin')}
-                onOpenStage={(stageId) =>
-                  navigate(`/machine/${selectedMachine.machineId}/stage/${stageId}`)
-                }
+                onOpenStage={(machineId, stageId) => {
+                  console.log('Router: Opening stage:', machineId, stageId); // Debug
+                  // Use business machineId for URL
+                  navigate(`/machine/${machineId}/stage/${stageId}`);
+                }}
                 onLogout={handleLogout}
               />
             ) : (
               <ManagerTask
-                machine={selectedMachine}
                 currentUser={currentUser}
                 onBack={() => navigate('/manager')}
                 onLogout={handleLogout}
