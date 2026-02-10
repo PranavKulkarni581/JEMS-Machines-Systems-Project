@@ -1,9 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, CheckCircle, Lock, User, Calendar } from 'lucide-react';
+import { ChevronRight, CheckCircle, Lock, User, Calendar, X, Clock } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 
 const API_BASE_URL = 'http://localhost:8080/api';
+
+// Input styles
+const inputStyles = `
+  .remark-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    background-color: #ffffff;
+    transition: all 0.2s;
+    resize: none;
+  }
+  
+  .remark-input::placeholder {
+    color: #94a3b8;
+  }
+  
+  .remark-input:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: 0 0 0 2px #0F2A44;
+  }
+`;
 
 export default function ManagerSubTasks({ currentUser }) {
   const { machineId, stageId } = useParams();
@@ -13,6 +38,11 @@ export default function ManagerSubTasks({ currentUser }) {
   const [task, setTask] = useState(null);
   const [isAssignedManager, setIsAssignedManager] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  /* === STATE FOR REMARKS === */
+  const [showRemarkModal, setShowRemarkModal] = useState(false);
+  const [selectedSubtaskId, setSelectedSubtaskId] = useState(null);
+  const [remarks, setRemarks] = useState('');
 
   /* ================= LOAD TASK ================= */
   useEffect(() => {
@@ -33,7 +63,7 @@ export default function ManagerSubTasks({ currentUser }) {
 
       setIsAssignedManager(data.assignedManagerId === currentUser.id);
 
-      const found = data.tasks.find(t => t.id === stageId);
+      const found = data.tasks.find(t => String(t.id) === String(stageId));
       setTask(found || null);
     } catch (err) {
       console.error(err);
@@ -41,14 +71,15 @@ export default function ManagerSubTasks({ currentUser }) {
     }
   };
 
-  /* ================= COMPLETE SUBTASK ================= */
-  const markComplete = async (subTaskId) => {
-    if (!task?.id || updating) return;
+  /* ================= SUBMIT FOR APPROVAL (Using ON_HOLD status) ================= */
+  const confirmComplete = async () => {
+    if (!selectedSubtaskId || updating) return;
 
     setUpdating(true);
     try {
+      // Use Update SubTask Status endpoint with ON_HOLD status to indicate "awaiting approval"
       const res = await fetch(
-        `${API_BASE_URL}/manager/machines/${machineId}/tasks/${task.id}/subtasks/${subTaskId}/complete`,
+        `${API_BASE_URL}/manager/machines/${machineId}/tasks/${task.id}/subtasks/${selectedSubtaskId}`,
         {
           method: 'PUT',
           headers: {
@@ -56,7 +87,9 @@ export default function ManagerSubTasks({ currentUser }) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            remarks: 'Completed successfully'
+            status: 'ON_HOLD', // ON_HOLD = Awaiting Admin Approval
+            remarks: remarks,
+            progressPercentage: 100
           })
         }
       );
@@ -64,10 +97,16 @@ export default function ManagerSubTasks({ currentUser }) {
       if (!res.ok) {
         const err = await res.text();
         console.error(err);
-        alert('Failed to mark subtask complete');
+        alert('Failed to submit subtask for approval');
         return;
       }
 
+      const result = await res.json();
+      console.log('Subtask submitted for approval:', result);
+
+      setShowRemarkModal(false);
+      setRemarks('');
+      setSelectedSubtaskId(null);
       await loadTask();
     } catch (err) {
       console.error(err);
@@ -89,7 +128,8 @@ export default function ManagerSubTasks({ currentUser }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      
+      <style>{inputStyles}</style>
+
       {/* HEADER */}
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10 backdrop-blur-sm bg-white/95">
         <div className="px-6 py-4 flex gap-4 items-center">
@@ -130,7 +170,7 @@ export default function ManagerSubTasks({ currentUser }) {
                   <p className="text-sm text-slate-600 mb-4">{st.description}</p>
                 )}
 
-                {/* Meta Info */}
+                {/* Meta Information */}
                 <div className="flex flex-wrap gap-4 mb-4 text-sm">
                   {st.assignedEmployee && (
                     <div className="flex items-center gap-2 text-slate-600">
@@ -156,18 +196,28 @@ export default function ManagerSubTasks({ currentUser }) {
                   )}
                 </div>
 
+                {/* Remarks Display (if status is ON_HOLD or COMPLETED) */}
+                {st.remarks && (st.status === 'ON_HOLD' || st.status === 'COMPLETED') && (
+                  <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <p className="text-xs font-semibold text-slate-500 mb-1">Completion Remarks:</p>
+                    <p className="text-sm text-slate-700">{st.remarks}</p>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="pt-4 border-t border-slate-100">
-                  {st.status !== 'COMPLETED' && (
+                  {(st.status === 'PENDING' || st.status === 'IN_PROGRESS') && (
                     canEdit ? (
                       <button
-                        disabled={updating}
-                        onClick={() => markComplete(st.id)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        onClick={() => {
+                          setSelectedSubtaskId(st.id);
+                          setShowRemarkModal(true);
+                        }}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition-all"
                         style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
                       >
                         <CheckCircle size={18} strokeWidth={2} />
-                        {updating ? 'Marking Complete...' : 'Mark Complete'}
+                        Mark Complete
                       </button>
                     ) : (
                       <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
@@ -177,6 +227,18 @@ export default function ManagerSubTasks({ currentUser }) {
                     )
                   )}
                   
+                  {st.status === 'ON_HOLD' && (
+                    <div className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border-2"
+                         style={{ 
+                           color: '#f59e0b',
+                           borderColor: '#f59e0b',
+                           backgroundColor: 'rgba(245, 158, 11, 0.1)'
+                         }}>
+                      <Clock size={18} strokeWidth={2} />
+                      Awaiting Admin Approval
+                    </div>
+                  )}
+
                   {st.status === 'COMPLETED' && (
                     <div className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border-2"
                          style={{ 
@@ -185,7 +247,7 @@ export default function ManagerSubTasks({ currentUser }) {
                            backgroundColor: 'rgba(16, 185, 129, 0.1)'
                          }}>
                       <CheckCircle size={18} strokeWidth={2} />
-                      Completed
+                      Approved & Completed
                     </div>
                   )}
                 </div>
@@ -202,6 +264,70 @@ export default function ManagerSubTasks({ currentUser }) {
           </div>
         )}
       </div>
+
+      {/* ================= REMARK MODAL ================= */}
+      {showRemarkModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-5 flex justify-between items-center border-b border-slate-200"
+                 style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}>
+              <h2 className="font-bold text-xl text-white">Complete Subtask</h2>
+              <button 
+                onClick={() => {
+                  setShowRemarkModal(false);
+                  setRemarks('');
+                }}
+                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+              >
+                <X className="text-white" size={24} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Completion Remarks <span className="text-red-600">*</span>
+              </label>
+              <textarea
+                rows={5}
+                placeholder="Enter detailed remarks about the completion..."
+                value={remarks}
+                onChange={e => setRemarks(e.target.value)}
+                className="remark-input"
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                This will be sent to admin for approval
+              </p>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowRemarkModal(false);
+                  setRemarks('');
+                }}
+                className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all"
+              >
+                Cancel
+              </button>
+              
+              <button
+                disabled={!remarks.trim() || updating}
+                onClick={confirmComplete}
+                className="flex-1 text-white py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={remarks.trim() && !updating ? { 
+                  background: 'linear-gradient(135deg, #10b981, #059669)'
+                } : { background: '#94a3b8' }}
+              >
+                {updating ? 'Submitting...' : 'Submit for Approval'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
