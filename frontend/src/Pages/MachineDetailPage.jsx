@@ -1,9 +1,33 @@
 import React, { useEffect, useState } from 'react';
+import { ChevronRight, LogOut, Plus, X, Calendar, User } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import { ChevronRight, LogOut, Plus, X } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
 const API_BASE_URL = 'http://localhost:8080/api';
+
+// Input styles
+const inputStyles = `
+  .modal-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    background-color: #ffffff;
+    transition: all 0.2s;
+  }
+  
+  .modal-input::placeholder {
+    color: #94a3b8;
+  }
+  
+  .modal-input:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: 0 0 0 2px #0F2A44;
+  }
+`;
 
 /* ================= ADD TASK MODAL ================= */
 function AddTaskModal({ machineId, onClose, onCreated }) {
@@ -121,105 +145,155 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-lg rounded-xl p-6">
-
-        <div className="flex justify-between mb-4">
-          <h2 className="font-bold text-lg">Add Task</h2>
-          <button onClick={onClose}><X /></button>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <style>{inputStyles}</style>
+      
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden">
+        
+        {/* Modal Header */}
+        <div className="px-6 py-5 flex justify-between items-center border-b border-slate-200"
+             style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}>
+          <h2 className="font-bold text-xl text-white">Add New Task</h2>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+          >
+            <X className="text-white" size={24} strokeWidth={2} />
+          </button>
         </div>
 
-        <div className="space-y-3">
-          <input
-            placeholder="Stage Name *"
-            className="w-full px-4 py-2 border rounded-lg"
-            value={form.stageName}
-            onChange={e =>
-              setForm(prev => ({ ...prev, stageName: e.target.value }))
-            }
-          />
-
-          <input
-            placeholder="Stage Number *"
-            className="w-full px-4 py-2 border rounded-lg"
-            value={form.stageNumber}
-            onChange={e =>
-              setForm(prev => ({ ...prev, stageNumber: e.target.value }))
-            }
-          />
-
-          <textarea
-            placeholder="Description"
-            className="w-full px-4 py-2 border rounded-lg"
-            rows={2}
-            value={form.description}
-            onChange={e =>
-              setForm(prev => ({ ...prev, description: e.target.value }))
-            }
-          />
-
-          <input
-            placeholder="Checked By"
-            className="w-full px-4 py-2 border rounded-lg"
-            value={form.checkedBy}
-            onChange={e =>
-              setForm(prev => ({ ...prev, checkedBy: e.target.value }))
-            }
-          />
-
-          <input
-            placeholder="Approved By"
-            className="w-full px-4 py-2 border rounded-lg"
-            value={form.approvedBy}
-            onChange={e =>
-              setForm(prev => ({ ...prev, approvedBy: e.target.value }))
-            }
-          />
-
-          <select
-            className="w-full px-4 py-2 border rounded-lg"
-            value={form.assignedToId}
-            onChange={e => {
-              const selected = assignees.find(
-                a => a.id === e.target.value
-              );
-              if (!selected) return;
-
-              setForm(prev => ({
-                ...prev,
-                assignedToId: selected.id,
-                assignedToName: selected.name
-              }));
-            }}
-          >
-            <option value="" disabled>
-              Assign To (Employee / Manager) *
-            </option>
-
-            {assignees.map(a => (
-              <option key={a.id} value={a.id}>
-                {a.name} ({a.role})
-              </option>
-            ))}
-          </select>
-
-          <div className="grid grid-cols-2 gap-3">
+        {/* Modal Body */}
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-slate-600 block mb-1">Start Date *</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Stage Name <span className="text-red-600">*</span>
+              </label>
+              <input
+                placeholder="e.g., Design Phase"
+                className="modal-input"
+                value={form.stageName}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, stageName: e.target.value }))
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Stage Number <span className="text-red-600">*</span>
+              </label>
+              <input
+                placeholder="e.g., 1"
+                className="modal-input"
+                value={form.stageNumber}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, stageNumber: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Description
+            </label>
+            <textarea
+              placeholder="Enter task description..."
+              className="modal-input resize-none"
+              rows={3}
+              value={form.description}
+              onChange={e =>
+                setForm(prev => ({ ...prev, description: e.target.value }))
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Checked By
+              </label>
+              <input
+                placeholder="Name"
+                className="modal-input"
+                value={form.checkedBy}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, checkedBy: e.target.value }))
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Approved By
+              </label>
+              <input
+                placeholder="Name"
+                className="modal-input"
+                value={form.approvedBy}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, approvedBy: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Assign To <span className="text-red-600">*</span>
+            </label>
+            <select
+              className="modal-input"
+              value={form.assignedToId}
+              onChange={e => {
+                const selected = assignees.find(
+                  a => a.id === e.target.value
+                );
+                if (!selected) return;
+
+                setForm(prev => ({
+                  ...prev,
+                  assignedToId: selected.id,
+                  assignedToName: selected.name
+                }));
+              }}
+            >
+              <option value="" disabled>
+                Select Employee or Manager
+              </option>
+
+              {assignees.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({a.role})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Start Date <span className="text-red-600">*</span>
+              </label>
               <input
                 type="date"
-                className="w-full px-4 py-2 border rounded-lg"
+                className="modal-input"
                 value={form.startDate}
                 onChange={e =>
                   setForm(prev => ({ ...prev, startDate: e.target.value }))
                 }
               />
             </div>
+            
             <div>
-              <label className="text-xs text-slate-600 block mb-1">End Date *</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                End Date <span className="text-red-600">*</span>
+              </label>
               <input
                 type="date"
-                className="w-full px-4 py-2 border rounded-lg"
+                className="modal-input"
                 value={form.endDate}
                 onChange={e =>
                   setForm(prev => ({ ...prev, endDate: e.target.value }))
@@ -227,13 +301,24 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
               />
             </div>
           </div>
+        </div>
 
+        {/* Modal Footer */}
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+          
           <button
             disabled={!isValid}
             onClick={createTask}
-            className={`w-full py-2 rounded-lg text-white transition ${
-              isValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-400 cursor-not-allowed'
-            }`}
+            className="flex-1 text-white py-3 rounded-xl font-semibold shadow-md transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            style={isValid ? { 
+              background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)'
+            } : { background: '#94a3b8' }}
           >
             Create Task
           </button>
@@ -250,7 +335,7 @@ export default function MachineDetailPage({
   onLogout,
   onOpenStage
 }) {
-  const { machineId } = useParams(); // Business ID from URL (e.g., "M-2024-001")
+  const { machineId } = useParams();
   
   const [machine, setMachine] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -268,7 +353,6 @@ export default function MachineDetailPage({
 
   const loadMachine = async () => {
     try {
-      // API endpoint uses business machineId (e.g., "M-2024-001")
       const url = `${API_BASE_URL}/admin/machines/${machineId}`;
       console.log('Fetching machine from:', url);
       
@@ -298,10 +382,10 @@ export default function MachineDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading machine...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#0F2A44' }}></div>
+          <p className="text-slate-900 font-semibold">Loading machine...</p>
           <p className="text-xs text-slate-500 mt-2">ID: {machineId}</p>
         </div>
       </div>
@@ -310,13 +394,14 @@ export default function MachineDetailPage({
 
   if (!machine) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="mb-4 text-lg">Machine not found</p>
-          <p className="text-sm text-slate-500 mb-4">Machine ID: {machineId}</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-lg border border-slate-200">
+          <p className="mb-4 text-lg font-semibold text-slate-900">Machine not found</p>
+          <p className="text-sm text-slate-500 mb-6">Machine ID: {machineId}</p>
           <button
             onClick={onBack}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="px-6 py-3 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition-all"
+            style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
           >
             Go Back to Dashboard
           </button>
@@ -326,97 +411,120 @@ export default function MachineDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b shadow-sm">
-        <div className="px-6 py-4 flex justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      
+      {/* HEADER */}
+      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10 backdrop-blur-sm bg-white/95">
+        <div className="px-6 py-4 flex justify-between items-center">
           <div className="flex gap-4 items-center">
-            <button onClick={onBack} className="hover:bg-slate-100 p-2 rounded-lg transition">
-              <ChevronRight className="rotate-180" />
+            <button 
+              onClick={onBack} 
+              className="p-2 hover:bg-slate-100 rounded-xl transition-all duration-200"
+            >
+              <ChevronRight className="rotate-180" style={{ color: '#0F2A44' }} strokeWidth={2} />
             </button>
             <div>
-              <h1 className="font-bold text-xl">{machine.machineName}</h1>
-              <p className="text-sm text-slate-500">ID: {machine.machineId}</p>
+              <h1 className="font-bold text-xl text-slate-900">{machine.machineName}</h1>
+              <p className="text-sm text-slate-500 font-medium">ID: {machine.machineId}</p>
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="font-medium">{currentUser?.fullName}</p>
-              <p className="text-xs text-slate-500">
+            <div className="text-right px-3 py-2 bg-slate-100 rounded-xl border border-slate-200">
+              <p className="font-semibold text-slate-900 text-sm">{currentUser?.fullName}</p>
+              <p className="text-xs font-medium" style={{ color: '#0F2A44' }}>
                 {currentUser?.roles?.includes('ADMIN') ? 'Admin' : 'Manager'}
               </p>
             </div>
+            
             <button 
               onClick={onLogout}
-              className="flex items-center gap-2 bg-slate-200 px-4 py-2 rounded-lg hover:bg-slate-300 transition"
+              className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-2.5 rounded-xl font-semibold text-sm text-slate-700 transition-all"
             >
-              <LogOut size={16} />
+              <LogOut size={18} strokeWidth={2} />
               Logout
             </button>
           </div>
         </div>
       </header>
 
-      <div className="p-6 space-y-4">
+      {/* TASKS LIST */}
+      <div className="p-6 max-w-6xl mx-auto space-y-4">
         {tasks.length > 0 ? (
           tasks.map(task => (
             <div
               key={task.id}
               onClick={() => {
                 console.log('Clicking task - machineId:', machineId, 'taskId:', task.id);
-                // Pass business machineId to maintain consistency
                 onOpenStage(machineId, task.id);
               }}
-              className="bg-white p-5 rounded-xl border shadow cursor-pointer hover:shadow-lg transition"
+              className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all duration-200 group"
             >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-semibold text-lg">{task.stageName}</h3>
-                  <p className="text-xs text-slate-500">Stage #{task.stageNumber}</p>
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-slate-900 group-hover:text-opacity-80 transition-colors">
+                    {task.stageName}
+                  </h3>
+                  <p className="text-sm font-semibold text-slate-500 mt-1">
+                    Stage #{task.stageNumber}
+                  </p>
                 </div>
                 <StatusBadge status={task.status} />
               </div>
 
               {task.description && (
-                <p className="text-sm text-slate-600 mb-2">{task.description}</p>
+                <p className="text-sm text-slate-600 mb-3 line-clamp-2">{task.description}</p>
               )}
 
-              <div className="flex justify-between items-center mt-3 pt-3 border-t">
+              <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
                 {task.assignedTo && (
-                  <p className="text-xs text-slate-500">
-                    Assigned to <b>{task.assignedTo}</b>
-                  </p>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <User size={16} strokeWidth={2} style={{ color: '#0F2A44' }} />
+                    <span>
+                      Assigned to <span className="font-semibold text-slate-900">{task.assignedTo}</span>
+                    </span>
+                  </div>
                 )}
                 
-                <div className="flex gap-4 text-xs text-slate-500">
-                  {task.subTasks && (
-                    <span>Subtasks: {task.subTasks.length}</span>
+                <div className="flex gap-4 text-sm items-center">
+                  {task.subTasks && task.subTasks.length > 0 && (
+                    <span className="text-slate-500">
+                      {task.subTasks.length} Subtask{task.subTasks.length !== 1 ? 's' : ''}
+                    </span>
                   )}
-                  <span className="text-blue-600 font-medium">
-                    View Details →
+                  <span className="font-semibold flex items-center gap-1 transition-all group-hover:gap-2" 
+                        style={{ color: '#0F2A44' }}>
+                    View Details
+                    <ChevronRight size={16} strokeWidth={2.5} />
                   </span>
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="bg-white p-8 rounded-xl shadow border text-center text-slate-500">
-            <p className="mb-2">No tasks added yet</p>
-            <p className="text-sm">Click the button below to add your first task</p>
+          <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+              <Calendar className="text-slate-400" size={32} />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">No tasks added yet</h3>
+            <p className="text-sm text-slate-500">Click the button below to add your first task</p>
           </div>
         )}
 
+        {/* ADD TASK BUTTON */}
         {currentUser?.roles?.includes('ADMIN') && (
           <button
             onClick={() => setShowAddTask(true)}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg flex justify-center items-center gap-2 hover:bg-blue-700 transition"
+            className="w-full text-white py-4 rounded-2xl flex justify-center items-center gap-2 font-semibold shadow-md hover:shadow-lg transition-all hover:scale-[1.01]"
+            style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
           >
-            <Plus size={20} />
+            <Plus size={20} strokeWidth={2.5} />
             Add Task
           </button>
         )}
       </div>
 
+      {/* ADD TASK MODAL */}
       {showAddTask && (
         <AddTaskModal
           machineId={machineId}
