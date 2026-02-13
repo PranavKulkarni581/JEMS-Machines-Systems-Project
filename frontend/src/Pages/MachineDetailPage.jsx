@@ -328,19 +328,191 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
   );
 }
 
+/* ================= FILE UPLOAD MODAL ================= */
+function FileUploadModal({
+  machineId,
+  tasks,
+  currentUser,
+  onClose
+}) {
+  const token = localStorage.getItem('token');
+
+  const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadFiles();
+  }, []);
+
+  const loadFiles = async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/files/machine/${machineId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data);
+      }
+    } catch (err) {
+      console.error("Failed to load files");
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("machineId", machineId);
+    formData.append("taskId", selectedTaskId || "");
+    formData.append("uploadedByUserId", currentUser.id);
+    formData.append("uploadedByName", currentUser.fullName);
+    formData.append(
+      "uploadedByRole",
+      currentUser.roles.includes("ADMIN") ? "ADMIN" : "MANAGER"
+    );
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE_URL}/files/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!res.ok) {
+        alert("Upload failed");
+        return;
+      }
+
+      setSelectedFile(null);
+      loadFiles();
+    } catch (err) {
+      alert("Upload error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden">
+
+        <div
+          className="px-6 py-5 flex justify-between items-center"
+          style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
+        >
+          <h2 className="text-white font-bold text-lg">Machine Uploads</h2>
+          <button onClick={onClose}>
+            <X className="text-white" size={24} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+
+          {/* Stage selection */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Assign to Stage (Optional)
+            </label>
+            <select
+              className="modal-input"
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+            >
+              <option value="">No Stage (General File)</option>
+              {tasks.map(task => (
+                <option key={task.id} value={task.id}>
+                  {task.stageName} (Stage #{task.stageNumber})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* File input */}
+          <input
+            type="file"
+            onChange={(e) => setSelectedFile(e.target.files[0])}
+            className="modal-input"
+          />
+
+          <button
+            disabled={!selectedFile || loading}
+            onClick={handleUpload}
+            className="w-full text-white py-3 rounded-xl font-semibold disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
+          >
+            {loading ? "Uploading..." : "Upload File"}
+          </button>
+
+          {/* Existing files */}
+          <div>
+            <h3 className="font-semibold text-slate-900 mb-3">
+              Existing Uploads
+            </h3>
+
+            {files.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No files uploaded yet
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {files.map(file => (
+                  <div
+                    key={file.id}
+                    className="p-3 border border-slate-200 rounded-xl flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {file.fileName}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {file.uploadedByName} • {file.uploadedByRole}
+                      </p>
+                    </div>
+
+                    <a
+                      href={file.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      View
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 /* ================= MACHINE DETAIL PAGE ================= */
 export default function MachineDetailPage({
   currentUser,
   onBack,
   onLogout,
   onOpenStage
-}) {
+ }) {
   const { machineId } = useParams();
   
   const [machine, setMachine] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [showAddTask, setShowAddTask] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
   
   const token = localStorage.getItem('token');
 
@@ -428,14 +600,24 @@ export default function MachineDetailPage({
               <p className="text-sm text-slate-500 font-medium">ID: {machine.machineId}</p>
             </div>
           </div>
+
+          
           
           <div className="flex items-center gap-4">
+            <button
+  onClick={() => setShowUploadModal(true)}
+  className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-md hover:shadow-lg transition-all"
+  style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}>
+  Upload
+   </button>
+
             <div className="text-right px-3 py-2 bg-slate-100 rounded-xl border border-slate-200">
               <p className="font-semibold text-slate-900 text-sm">{currentUser?.fullName}</p>
               <p className="text-xs font-medium" style={{ color: '#0F2A44' }}>
                 {currentUser?.roles?.includes('ADMIN') ? 'Admin' : 'Manager'}
               </p>
             </div>
+            
             
             <button 
               onClick={onLogout}
@@ -532,6 +714,18 @@ export default function MachineDetailPage({
           onCreated={loadMachine}
         />
       )}
-    </div>
+
+    {showUploadModal && (
+   <FileUploadModal
+    machineId={machineId}
+    tasks={tasks}
+    currentUser={currentUser}
+    onClose={() => setShowUploadModal(false)}
+   />
+   )}
+
+
+
+  </div>
   );
 }

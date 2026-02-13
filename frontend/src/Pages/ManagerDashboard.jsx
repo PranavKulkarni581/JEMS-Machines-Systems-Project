@@ -3,6 +3,7 @@ import { Package, LogOut, CheckCircle, TrendingUp, Clock } from 'lucide-react';
 import MachineCard from './MachineCard';
 import StatusBadge from './StatusBadge';
 import ManagerTask from './ManagerTask';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -12,6 +13,8 @@ export default function ManagerDashboard({ currentUser, onLogout }) {
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [machineDetails, setMachineDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+const navigate = useNavigate();
+
 
   const token = localStorage.getItem('token');
 
@@ -57,6 +60,7 @@ export default function ManagerDashboard({ currentUser, onLogout }) {
               if (sub.status !== 'COMPLETED' && canEditSub) {
                 allPending.push({
                   ...sub,
+                  machineId: details.machineId,
                   machineName: details.machineName,
                   stageName: task.stageName
                 });
@@ -102,15 +106,41 @@ export default function ManagerDashboard({ currentUser, onLogout }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#0F2A44' }}></div>
-          <p className="text-slate-600 font-medium">Loading dashboard...</p>
-        </div>
-      </div>
+  /* ================= OPEN MACHINE WITH SUBTASK (VIEW)================= */
+  const openSubtaskDirectly = async (machineId, subtaskId) => {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/manager/machines/${machineId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    // Find which stage contains the subtask
+    for (let task of data.tasks || []) {
+      const found = task.subTasks?.find(
+        sub => sub.id === subtaskId
+      );
+
+      if (found) {
+        navigate(
+          `/machine/${machineId}/stage/${task.id}`,
+          { state: { highlightSubtaskId: subtaskId } }
+        );
+        break;
+      }
+    }
+
+  } catch (err) {
+    console.error("Navigation failed:", err);
+  }
+};
+
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading dashboard...</div>;
   }
 
   /* ================= MACHINE VIEW ================= */
@@ -184,23 +214,34 @@ export default function ManagerDashboard({ currentUser, onLogout }) {
         </div>
 
         {/* PENDING SUBTASKS */}
+       
         {pendingSubtasks.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Clock size={20} strokeWidth={2} style={{ color: '#0F2A44' }} />
+            <h2 className="text-lg font-bold text-slate-900 mb-4">
               Pending Subtasks
             </h2>
             <div className="space-y-3">
               {pendingSubtasks.map(sub => (
-                <div key={sub.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-900">{sub.name}</p>
-                      <p className="text-sm text-slate-500 mt-1">
+                <div key={sub.id} className="bg-white p-5 rounded-2xl border shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="font-semibold">{sub.name}</p>
+                      <p className="text-sm text-slate-500">
                         {sub.machineName} – {sub.stageName}
                       </p>
                     </div>
                     <StatusBadge status={sub.status} />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() =>
+                        openSubtaskDirectly(sub.machineId, sub.id)
+                      }
+                      className="px-3 py-1.5 bg-[#0F2A44] text-white rounded-full text-xs font-semibold hover:opacity-90 transition-all">
+
+                      View
+                    </button>
                   </div>
                 </div>
               ))}

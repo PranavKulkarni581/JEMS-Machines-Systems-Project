@@ -68,21 +68,31 @@ public class Machine {
     
     // Calculate overall machine progress
     public void calculateOverallProgress() {
+
         if (tasks == null || tasks.isEmpty()) {
             this.overallProgress = 0;
+            this.status = MachineStatus.NOT_STARTED;
             return;
         }
-        
+
         int totalProgress = tasks.stream()
                 .mapToInt(Task::getProgressPercentage)
                 .sum();
+
         this.overallProgress = totalProgress / tasks.size();
-        
-        // Update status based on progress
+
+        // 🚨 IMPORTANT: Don't override DELIVERED status
+        if (this.status == MachineStatus.DELIVERED) {
+            return;
+        }
+
         if (this.overallProgress == 100) {
             this.status = MachineStatus.COMPLETED;
         } else if (this.overallProgress > 0) {
             this.status = MachineStatus.IN_PROGRESS;
+        } else {
+            this.status = MachineStatus.NOT_STARTED;
         }
     }
+
 }

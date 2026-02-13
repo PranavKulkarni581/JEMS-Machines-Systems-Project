@@ -33,24 +33,38 @@ public class Task {
         ON_HOLD,
         CANCELLED
     }
-    
+
     // Calculate overall progress based on subtasks
     public void calculateProgress() {
+
         if (subTasks == null || subTasks.isEmpty()) {
             this.progressPercentage = 0;
+            this.status = TaskStatus.PENDING;
             return;
         }
-        
+
+        // Calculate average progress
         int totalProgress = subTasks.stream()
                 .mapToInt(SubTask::getProgressPercentage)
                 .sum();
+
         this.progressPercentage = totalProgress / subTasks.size();
-        
-        // Update status based on progress
-        if (this.progressPercentage == 100) {
+
+        // ✅ Correct workflow-based status logic
+
+        boolean allCompleted = subTasks.stream()
+                .allMatch(st -> st.getStatus() == SubTask.TaskStatus.COMPLETED);
+
+        boolean hasStarted = subTasks.stream()
+                .anyMatch(st -> st.getProgressPercentage() > 0);
+
+        if (allCompleted) {
             this.status = TaskStatus.COMPLETED;
-        } else if (this.progressPercentage > 0) {
+        } else if (hasStarted) {
             this.status = TaskStatus.IN_PROGRESS;
+        } else {
+            this.status = TaskStatus.PENDING;
         }
     }
+
 }
