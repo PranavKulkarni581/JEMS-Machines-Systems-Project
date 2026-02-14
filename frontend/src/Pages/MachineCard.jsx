@@ -157,7 +157,7 @@ export default function MachineCard({ machine, onClick }) {
         </div>
 
         {/* ================= MARK DELIVERED BUTTON ================= */}
-        {machine.progress === 100 &&
+        {/* {machine.progress === 100 &&
           machine.status === 'COMPLETED' && (
             <div className="mt-4">
               <button
@@ -172,7 +172,7 @@ export default function MachineCard({ machine, onClick }) {
                 {loading ? 'Marking...' : 'Mark Delivered'}
               </button>
             </div>
-          )}
+          )} */}
 
       </div>
 
