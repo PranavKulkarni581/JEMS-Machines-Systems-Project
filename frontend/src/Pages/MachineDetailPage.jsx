@@ -328,6 +328,234 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
   );
 }
 
+/* ================= FILE UPLOAD MODAL ================= */
+function FileUploadModal({
+  machineId,
+  tasks,
+  currentUser,
+  onClose
+}) {
+  const token = localStorage.getItem('token');
+
+  const [selectedTaskId, setSelectedTaskId] = React.useState('');
+  const [selectedFile, setSelectedFile] = React.useState(null);
+  const [files, setFiles] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  /* ================= LOAD FILES ================= */
+  const loadFiles = async () => {
+    try {
+
+      // ✅ FIXED URL (Query Param instead of /machine/)
+      let url = `${API_BASE_URL}/files?machineId=${machineId}`;
+
+      if (selectedTaskId) {
+        url += `&taskId=${selectedTaskId}`;
+      }
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        console.error("Failed to fetch files");
+        return;
+      }
+
+      const data = await res.json();
+
+      // 🔥 Sort ADMIN first
+      const sorted = data.sort((a, b) => {
+        if (a.uploadedByRole === b.uploadedByRole) return 0;
+        return a.uploadedByRole === "ADMIN" ? -1 : 1;
+      });
+
+      setFiles(sorted);
+
+    } catch (err) {
+      console.error("Failed to load files", err);
+    }
+  };
+
+  React.useEffect(() => {
+    loadFiles();
+  }, [machineId, selectedTaskId]);
+
+  /* ================= UPLOAD FILE ================= */
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("machineId", machineId);
+    formData.append("taskId", selectedTaskId || "");
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE_URL}/files/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        alert("Upload failed: " + err);
+        return;
+      }
+
+      // Refresh file list
+      await loadFiles();
+
+      // Reset inputs
+      setSelectedFile(null);
+      setSelectedTaskId("");
+
+    } catch (err) {
+      alert("Upload error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ================= DELETE FILE ================= */
+  const handleDelete = async (fileId) => {
+    if (!window.confirm("Are you sure you want to delete this file?")) return;
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/files/${fileId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (!res.ok) {
+        alert("Delete failed");
+        return;
+      }
+
+      // Refresh list
+      await loadFiles();
+
+    } catch (err) {
+      alert("Delete error");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden">
+
+        {/* Header */}
+        <div
+          className="px-6 py-5 flex justify-between items-center"
+          style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
+        >
+          <h2 className="text-white font-bold text-lg">Machine Uploads</h2>
+          <button onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+
+          {/* Stage selection */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Assign to Stage (Optional)
+            </label>
+            <select
+              className="modal-input"
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+            >
+              <option value="">No Stage (General File)</option>
+              {tasks.map(task => (
+                <option key={task.id} value={task.id}>
+                  {task.stageName} (Stage #{task.stageNumber})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* File input */}
+          <input
+            type="file"
+            onChange={(e) => setSelectedFile(e.target.files[0])}
+            className="modal-input"
+          />
+
+          <button
+            disabled={!selectedFile || loading}
+            onClick={handleUpload}
+            className="w-full text-white py-3 rounded-xl font-semibold disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
+          >
+            {loading ? "Uploading..." : "Upload File"}
+          </button>
+
+          {/* Existing files */}
+          <div>
+            <h3 className="font-semibold text-slate-900 mb-3">
+              Existing Uploads
+            </h3>
+
+            {files.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No files uploaded yet
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {files.map(file => (
+                  <div
+                    key={file.id}
+                    className="p-3 border border-slate-200 rounded-xl flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {file.fileName}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {file.uploadedByRole === "ADMIN" ? "Admin" : "Manager"} • {file.uploadedByName}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3 items-center">
+                      <a
+                        href={file.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        View
+                      </a>
+
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        className="text-sm text-red-600 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 /* ================= MACHINE DETAIL PAGE ================= */
 export default function MachineDetailPage({
   currentUser,
@@ -340,81 +568,83 @@ export default function MachineDetailPage({
   const [machine, setMachine] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [showAddTask, setShowAddTask] = useState(false);
-  const [loading, setLoading] = useState(true);
-  
-  const token = localStorage.getItem('token');
+ const [loading, setLoading] = useState(true);
+ const [showUploadModal, setShowUploadModal] = useState(false);
 
-  useEffect(() => {
-    console.log('MachineDetailPage - machineId from URL:', machineId);
-    if (machineId) {
-      loadMachine();
-    }
-  }, [machineId]);
+ 
+ const token = localStorage.getItem('token');
 
-  const loadMachine = async () => {
-    try {
-      const url = `${API_BASE_URL}/admin/machines/${machineId}`;
-      console.log('Fetching machine from:', url);
-      
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+ useEffect(() => {
+ console.log('MachineDetailPage - machineId from URL:', machineId);
+ if (machineId) {
+ loadMachine();
+ }
+ }, [machineId]);
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('API Response:', res.status, errorText);
-        throw new Error(`Failed to load machine: ${res.status}`);
-      }
+ const loadMachine = async () => {
+ try {
+ const url = `${API_BASE_URL}/admin/machines/${machineId}`;
+ console.log('Fetching machine from:', url);
+ 
+ const res = await fetch(url, {
+ headers: { Authorization: `Bearer ${token}` }
+ });
 
-      const data = await res.json();
-      console.log('Machine loaded:', data);
-      console.log('Tasks count:', data.tasks?.length || 0);
-      
-      setMachine(data);
-      setTasks(data.tasks || []);
-    } catch (error) {
-      console.error('Error loading machine:', error);
-      alert(`Failed to load machine: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+ if (!res.ok) {
+ const errorText = await res.text();
+ console.error('API Response:', res.status, errorText);
+ throw new Error(`Failed to load machine: ${res.status}`);
+ }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#0F2A44' }}></div>
-          <p className="text-slate-900 font-semibold">Loading machine...</p>
-          <p className="text-xs text-slate-500 mt-2">ID: {machineId}</p>
-        </div>
-      </div>
-    );
-  }
+ const data = await res.json();
+ console.log('Machine loaded:', data);
+ console.log('Tasks count:', data.tasks?.length || 0);
+ 
+ setMachine(data);
+ setTasks(data.tasks || []);
+ } catch (error) {
+ console.error('Error loading machine:', error);
+ alert(`Failed to load machine: ${error.message}`);
+ } finally {
+ setLoading(false);
+ }
+ };
 
-  if (!machine) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-2xl shadow-lg border border-slate-200">
-          <p className="mb-4 text-lg font-semibold text-slate-900">Machine not found</p>
-          <p className="text-sm text-slate-500 mb-6">Machine ID: {machineId}</p>
-          <button
-            onClick={onBack}
-            className="px-6 py-3 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition-all"
-            style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
-          >
-            Go Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+ if (loading) {
+ return (
+ <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+ <div className="text-center">
+ <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#0F2A44' }}></div>
+ <p className="text-slate-900 font-semibold">Loading machine...</p>
+ <p className="text-xs text-slate-500 mt-2">ID: {machineId}</p>
+ </div>
+ </div>
+ );
+ }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      
-      {/* HEADER */}
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10 backdrop-blur-sm bg-white/95">
+ if (!machine) {
+ return (
+ <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+ <div className="text-center bg-white p-8 rounded-2xl shadow-lg border border-slate-200">
+ <p className="mb-4 text-lg font-semibold text-slate-900">Machine not found</p>
+ <p className="text-sm text-slate-500 mb-6">Machine ID: {machineId}</p>
+ <button
+ onClick={onBack}
+ className="px-6 py-3 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition-all"
+ style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
+ >
+ Go Back to Dashboard
+ </button>
+ </div>
+ </div>
+ );
+ }
+
+ return (
+ <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+ 
+ {/* HEADER */}
+   <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10 backdrop-blur-sm bg-white/95">
         <div className="px-6 py-4 flex justify-between items-center">
           <div className="flex gap-4 items-center">
             <button 
@@ -428,14 +658,24 @@ export default function MachineDetailPage({
               <p className="text-sm text-slate-500 font-medium">ID: {machine.machineId}</p>
             </div>
           </div>
+
+          
           
           <div className="flex items-center gap-4">
+            <button
+  onClick={() => setShowUploadModal(true)}
+  className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white shadow-md hover:shadow-lg transition-all"
+  style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}>
+  Upload
+   </button>
+
             <div className="text-right px-3 py-2 bg-slate-100 rounded-xl border border-slate-200">
               <p className="font-semibold text-slate-900 text-sm">{currentUser?.fullName}</p>
               <p className="text-xs font-medium" style={{ color: '#0F2A44' }}>
                 {currentUser?.roles?.includes('ADMIN') ? 'Admin' : 'Manager'}
               </p>
             </div>
+            
             
             <button 
               onClick={onLogout}
@@ -447,91 +687,102 @@ export default function MachineDetailPage({
           </div>
         </div>
       </header>
+ {/* TASKS LIST */}
+ <div className="p-6 max-w-6xl mx-auto space-y-4">
+ {tasks.length > 0 ? (
+ tasks.map(task => (
+ <div
+ key={task.id}
+ onClick={() => {
+ console.log('Clicking task - machineId:', machineId, 'taskId:', task.id);
+ onOpenStage(machineId, task.id);
+ }}
+ className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all duration-200 group"
+ >
+ <div className="flex justify-between items-start mb-3">
+ <div className="flex-1">
+ <h3 className="font-bold text-lg text-slate-900 group-hover:text-opacity-80 transition-colors">
+ {task.stageName}
+ </h3>
+ <p className="text-sm font-semibold text-slate-500 mt-1">
+ Stage #{task.stageNumber}
+ </p>
+ </div>
+ <StatusBadge status={task.status} />
+ </div>
 
-      {/* TASKS LIST */}
-      <div className="p-6 max-w-6xl mx-auto space-y-4">
-        {tasks.length > 0 ? (
-          tasks.map(task => (
-            <div
-              key={task.id}
-              onClick={() => {
-                console.log('Clicking task - machineId:', machineId, 'taskId:', task.id);
-                onOpenStage(machineId, task.id);
-              }}
-              className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all duration-200 group"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-slate-900 group-hover:text-opacity-80 transition-colors">
-                    {task.stageName}
-                  </h3>
-                  <p className="text-sm font-semibold text-slate-500 mt-1">
-                    Stage #{task.stageNumber}
-                  </p>
-                </div>
-                <StatusBadge status={task.status} />
-              </div>
+ {task.description && (
+ <p className="text-sm text-slate-600 mb-3 line-clamp-2">{task.description}</p>
+ )}
 
-              {task.description && (
-                <p className="text-sm text-slate-600 mb-3 line-clamp-2">{task.description}</p>
-              )}
+ <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
+ {task.assignedTo && (
+ <div className="flex items-center gap-2 text-sm text-slate-600">
+ <User size={16} strokeWidth={2} style={{ color: '#0F2A44' }} />
+ <span>
+ Assigned to <span className="font-semibold text-slate-900">{task.assignedTo}</span>
+ </span>
+ </div>
+ )}
+ 
+ <div className="flex gap-4 text-sm items-center">
+ {task.subTasks && task.subTasks.length > 0 && (
+ <span className="text-slate-500">
+ {task.subTasks.length} Subtask{task.subTasks.length !== 1 ? 's' : ''}
+ </span>
+ )}
+ <span className="font-semibold flex items-center gap-1 transition-all group-hover:gap-2" 
+ style={{ color: '#0F2A44' }}>
+ View Details
+ <ChevronRight size={16} strokeWidth={2.5} />
+ </span>
+ </div>
+ </div>
+ </div>
+ ))
+ ) : (
+ <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
+ <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+ <Calendar className="text-slate-400" size={32} />
+ </div>
+ <h3 className="text-lg font-semibold text-slate-900 mb-2">No tasks added yet</h3>
+ <p className="text-sm text-slate-500">Click the button below to add your first task</p>
+ </div>
+ )}
 
-              <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
-                {task.assignedTo && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <User size={16} strokeWidth={2} style={{ color: '#0F2A44' }} />
-                    <span>
-                      Assigned to <span className="font-semibold text-slate-900">{task.assignedTo}</span>
-                    </span>
-                  </div>
-                )}
-                
-                <div className="flex gap-4 text-sm items-center">
-                  {task.subTasks && task.subTasks.length > 0 && (
-                    <span className="text-slate-500">
-                      {task.subTasks.length} Subtask{task.subTasks.length !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                  <span className="font-semibold flex items-center gap-1 transition-all group-hover:gap-2" 
-                        style={{ color: '#0F2A44' }}>
-                    View Details
-                    <ChevronRight size={16} strokeWidth={2.5} />
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-              <Calendar className="text-slate-400" size={32} />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">No tasks added yet</h3>
-            <p className="text-sm text-slate-500">Click the button below to add your first task</p>
-          </div>
-        )}
+ {/* ADD TASK BUTTON */}
+ {currentUser?.roles?.includes('ADMIN') && (
+ <button
+ onClick={() => setShowAddTask(true)}
+ className="w-full text-white py-4 rounded-2xl flex justify-center items-center gap-2 font-semibold shadow-md hover:shadow-lg transition-all hover:scale-[1.01]"
+ style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
+ >
+ <Plus size={20} strokeWidth={2.5} />
+ Add Task
+ </button>
+ )}
+ </div>
 
-        {/* ADD TASK BUTTON */}
-        {currentUser?.roles?.includes('ADMIN') && (
-          <button
-            onClick={() => setShowAddTask(true)}
-            className="w-full text-white py-4 rounded-2xl flex justify-center items-center gap-2 font-semibold shadow-md hover:shadow-lg transition-all hover:scale-[1.01]"
-            style={{ background: 'linear-gradient(135deg, #0F2A44, #1a3a5a)' }}
-          >
-            <Plus size={20} strokeWidth={2.5} />
-            Add Task
-          </button>
-        )}
-      </div>
+ {/* ADD TASK MODAL */}
+ {showAddTask && (
+ <AddTaskModal
+ machineId={machineId}
+ onClose={() => setShowAddTask(false)}
+ onCreated={loadMachine}
+ />
+ )}
 
-      {/* ADD TASK MODAL */}
-      {showAddTask && (
-        <AddTaskModal
-          machineId={machineId}
-          onClose={() => setShowAddTask(false)}
-          onCreated={loadMachine}
-        />
-      )}
-    </div>
-  );
+ {showUploadModal && (
+ <FileUploadModal
+ machineId={machineId}
+ tasks={tasks}
+ currentUser={currentUser}
+ onClose={() => setShowUploadModal(false)}
+ />
+)}
+
+
+
+ </div>
+ );
 }

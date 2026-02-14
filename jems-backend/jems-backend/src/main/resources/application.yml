@@ -24,3 +24,7 @@ logging:
     root: INFO
     com.jems: DEBUG
     org.springframework.data.mongodb: DEBUG
+cloudinary:
+  cloud-name: djmf8hahq
+  api-key: 632723871821149
+  api-secret: CgV5WKqTLVEOJUnU4T2uAGzeeic

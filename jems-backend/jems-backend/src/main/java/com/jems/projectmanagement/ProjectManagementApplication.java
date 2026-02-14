@@ -12,3 +12,9 @@ public class ProjectManagementApplication {
         SpringApplication.run(ProjectManagementApplication.class, args);
     }
 }
+// cloudinary secert key : CgV5WKqTLVEOJUnU4T2uAGzeeic
+// API key : 632723871821149
+// cloud name :
+// API name :
+//JEMS
+//url for API : CLOUDINARY_URL=cloudinary://<your_api_key>:<your_api_secret>@djmf8hahq

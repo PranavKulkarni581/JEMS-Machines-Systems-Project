@@ -6,7 +6,10 @@ import {
   X,
   Calendar,
   User,
-  FileText
+  FileText,
+  CheckCircle,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
@@ -49,6 +52,9 @@ export default function SubTasksPage({
 
   const [employees, setEmployees] = useState([]);
   const [managers, setManagers] = useState([]);
+
+  /* Approval state */
+  const [approvingSubtask, setApprovingSubtask] = useState(null);
 
   const token = localStorage.getItem('token');
 
@@ -161,6 +167,82 @@ export default function SubTasksPage({
     }
   };
 
+  /* ================= APPROVE SUBTASK (Change ON_HOLD → COMPLETED) ================= */
+  const handleApprove = async (subtaskId) => {
+    try {
+      setApprovingSubtask(subtaskId);
+      
+      // Use manager endpoint - admin has access to all machines
+      const res = await fetch(
+        `${API_BASE_URL}/manager/machines/${machineId}/tasks/${task.id}/subtasks/${subtaskId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: 'COMPLETED',
+            progressPercentage: 100
+            // Remarks are already saved, no need to send again
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Approval failed:', errorText);
+        alert(`Failed to approve subtask: ${errorText}`);
+        return;
+      }
+
+      await loadMachineAndTask();
+    } catch (error) {
+      console.error('Error approving subtask:', error);
+      alert('Failed to approve subtask');
+    } finally {
+      setApprovingSubtask(null);
+    }
+  };
+
+  /* ================= REJECT SUBTASK (Change ON_HOLD → PENDING) ================= */
+  const handleReject = async (subtaskId) => {
+    try {
+      setApprovingSubtask(subtaskId);
+      
+      // Use manager endpoint - admin has access to all machines
+      const res = await fetch(
+        `${API_BASE_URL}/manager/machines/${machineId}/tasks/${task.id}/subtasks/${subtaskId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: 'PENDING',
+            remarks: '', // Clear remarks on rejection
+            progressPercentage: 0
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Rejection failed:', errorText);
+        alert(`Failed to reject subtask: ${errorText}`);
+        return;
+      }
+
+      await loadMachineAndTask();
+    } catch (error) {
+      console.error('Error rejecting subtask:', error);
+      alert('Failed to reject subtask');
+    } finally {
+      setApprovingSubtask(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -234,7 +316,7 @@ export default function SubTasksPage({
               )}
 
               {/* Meta Information */}
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 {st.assignedEmployee && (
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <User size={16} strokeWidth={2} style={{ color: '#0F2A44' }} />
@@ -259,6 +341,65 @@ export default function SubTasksPage({
                   )}
                 </div>
               </div>
+
+              {/* Remarks Display (if ON_HOLD or COMPLETED) */}
+              {st.remarks && (st.status === 'ON_HOLD' || st.status === 'COMPLETED') && (
+                <div className="mb-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <p className="text-xs font-semibold text-slate-500 mb-1">Manager's Remarks:</p>
+                  <p className="text-sm text-slate-700">{st.remarks}</p>
+                </div>
+              )}
+
+              {/* Approval Actions (Only for ON_HOLD status) */}
+              {st.status === 'ON_HOLD' && currentUser?.roles?.includes('ADMIN') && (
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 mb-3"
+                       style={{ 
+                         color: '#f59e0b',
+                         borderColor: '#f59e0b',
+                         backgroundColor: 'rgba(245, 158, 11, 0.1)'
+                       }}>
+                    <Clock size={18} strokeWidth={2} />
+                    Awaiting Your Approval
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleReject(st.id)}
+                      disabled={approvingSubtask === st.id}
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-red-600 to-red-700 disabled:opacity-50"
+                    >
+                      <XCircle size={18} strokeWidth={2} />
+                      {approvingSubtask === st.id ? 'Processing...' : 'Reject'}
+                    </button>
+
+                    <button
+                      onClick={() => handleApprove(st.id)}
+                      disabled={approvingSubtask === st.id}
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                      style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                    >
+                      <CheckCircle size={18} strokeWidth={2} />
+                      {approvingSubtask === st.id ? 'Processing...' : 'Approve'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Completed Badge */}
+              {st.status === 'COMPLETED' && (
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border-2"
+                       style={{ 
+                         color: '#10b981',
+                         borderColor: '#10b981',
+                         backgroundColor: 'rgba(16, 185, 129, 0.1)'
+                       }}>
+                    <CheckCircle size={18} strokeWidth={2} />
+                    Approved & Completed
+                  </div>
+                </div>
+              )}
             </div>
           ))
         ) : (
