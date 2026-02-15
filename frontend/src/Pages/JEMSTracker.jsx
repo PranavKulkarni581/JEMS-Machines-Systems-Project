@@ -10,6 +10,7 @@ import ManagerSubTasks from './ManagerSubTasks';
 import StageTasksPage from './SubTasksPage';
 import UsersPage from './UsersPage';
 import AddMachine from './AddMachine';
+import Footer from './Footer';
 
 const API_BASE_URL = 'https://jems-machines-systems.onrender.com/api';
 
@@ -70,6 +71,7 @@ export default function JEMSTracker() {
   if (loading) return <div className="p-6">Loading...</div>;
 
   return (
+     <>
     <Routes>
 
       {/* ================= LOGIN ================= */}
@@ -212,5 +214,7 @@ export default function JEMSTracker() {
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    <Footer/>
+    </>
   );
 }
