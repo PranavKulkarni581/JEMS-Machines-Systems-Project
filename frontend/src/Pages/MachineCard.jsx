@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight, Activity, Building2, CheckCircle } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://jems-machines-systems.onrender.com/api';
 
 export default function MachineCard({ machine, onClick }) {
 

@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { useLocation } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://jems-machines-systems.onrender.com/api';
 
 const inputStyles = `
   .remark-input {

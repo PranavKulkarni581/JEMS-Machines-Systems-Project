@@ -3,7 +3,7 @@ import { ChevronRight, LogOut, Shield, Package, TrendingUp , X} from 'lucide-rea
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://jems-machines-systems.onrender.com/api';
 /* ================= FILE UPLOAD MODAL ================= */
 function FileUploadModal({
   machineId,

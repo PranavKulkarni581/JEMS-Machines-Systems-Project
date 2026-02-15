@@ -9,7 +9,7 @@ import {
 
 import MachineCard from './MachineCard';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://jems-machines-systems.onrender.com/api';
 
 export default function AdminDashboard({
   currentUser,

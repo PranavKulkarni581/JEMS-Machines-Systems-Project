@@ -8,7 +8,7 @@ import {
   Search
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://jems-machines-systems.onrender.com/api';
 
 // Input styles
 const inputStyles = `
