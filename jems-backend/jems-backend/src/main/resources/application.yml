@@ -1,30 +1,64 @@
+#spring:
+#  application:
+#    name: jems-project-management
+#  data:
+#    mongodb:
+#      uri: mongodb+srv://root:root@jems.fb1dkwa.mongodb.net/?appName=JEMS
+#      database: jems_db
+#  servlet:
+#    multipart:
+#      max-file-size: 10MB
+#      max-request-size: 10MB
+#
+#server:
+#  port: ${PORT:8080}
+#  servlet:
+#    context-path: /api
+#
+#jwt:
+#  secret: ${JWT_SECRET:jemsSecretKeyForJWTTokenGenerationAndValidation2024}
+#  expiration: 86400000 # 24 hours in milliseconds
+#
+#logging:
+#  level:
+#    root: INFO
+#    com.jems: DEBUG
+#    org.springframework.data.mongodb: DEBUG
+#cloudinary:
+#  cloud-name: djmf8hahq
+#  api-key: 632723871821149
+#  api-secret: CgV5WKqTLVEOJUnU4T2uAGzeeic
 spring:
   application:
     name: jems-project-management
+
   data:
     mongodb:
-      uri: mongodb+srv://root:root@jems.fb1dkwa.mongodb.net/?appName=JEMS
-      database: jems_db
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DB:jems_db}
+
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api
 
 jwt:
-  secret: ${JWT_SECRET:jemsSecretKeyForJWTTokenGenerationAndValidation2024}
-  expiration: 86400000 # 24 hours in milliseconds
+  secret: ${JWT_SECRET}
+  expiration: 86400000
 
 logging:
   level:
     root: INFO
-    com.jems: DEBUG
-    org.springframework.data.mongodb: DEBUG
+    com.jems: INFO
+    org.springframework.data.mongodb: WARN
+
 cloudinary:
-  cloud-name: djmf8hahq
-  api-key: 632723871821149
-  api-secret: CgV5WKqTLVEOJUnU4T2uAGzeeic
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
