@@ -67,32 +67,50 @@ public class Machine {
     }
 
     // Calculate overall machine progress
+    // Calculate overall machine progress
     public void calculateOverallProgress() {
 
+        // If no tasks exist
         if (tasks == null || tasks.isEmpty()) {
             this.overallProgress = 0;
             this.status = MachineStatus.NOT_STARTED;
             return;
         }
 
+        // 🔢 Calculate average progress from tasks
         int totalProgress = tasks.stream()
                 .mapToInt(Task::getProgressPercentage)
                 .sum();
 
         this.overallProgress = totalProgress / tasks.size();
 
-        // 🚨 IMPORTANT: Don't override DELIVERED status
+        // 🚨 IMPORTANT: Do not override DELIVERED status
         if (this.status == MachineStatus.DELIVERED) {
             return;
         }
 
-        if (this.overallProgress == 100) {
+        // ✅ Correct status logic based on TASK STATUS (not percentage)
+
+        boolean allTasksCompleted = tasks.stream()
+                .allMatch(task -> task.getStatus() == Task.TaskStatus.COMPLETED);
+
+        boolean anyTaskInProgress = tasks.stream()
+                .anyMatch(task -> task.getStatus() == Task.TaskStatus.IN_PROGRESS);
+
+        boolean anyTaskOnHold = tasks.stream()
+                .anyMatch(task -> task.getStatus() == Task.TaskStatus.ON_HOLD);
+
+        if (allTasksCompleted) {
             this.status = MachineStatus.COMPLETED;
-        } else if (this.overallProgress > 0) {
+        }
+        else if (anyTaskInProgress || anyTaskOnHold) {
+            // If at least one task started but not all completed
             this.status = MachineStatus.IN_PROGRESS;
-        } else {
+        }
+        else {
             this.status = MachineStatus.NOT_STARTED;
         }
     }
+
 
 }

@@ -77,18 +77,26 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
     }
   };
 
-  const assignees = [
-    ...employees.map(e => ({
-      id: e.id.toString(),
-      name: e.name,
-      role: 'Employee'
-    })),
-    ...managers.map(m => ({
-      id: m.id.toString(),
-      name: m.fullName,
-      role: 'Manager'
-    }))
-  ];
+const managerNames = new Set(
+  managers.map(m => m.fullName.trim().toLowerCase())
+);
+
+const filteredEmployees = employees.filter(
+  e => !managerNames.has(e.name.trim().toLowerCase())
+);
+
+const assignees = [
+  ...managers.map(m => ({
+    id: m.id.toString(),
+    name: m.fullName,
+    role: 'Manager'
+  })),
+  ...filteredEmployees.map(e => ({
+    id: e.id.toString(),
+    name: e.name,
+    role: 'Employee'
+  }))
+];
 
   const isValid =
     form.stageName &&
@@ -210,8 +218,8 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
+            {/* <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Checked By
               </label>
@@ -223,8 +231,8 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
                   setForm(prev => ({ ...prev, checkedBy: e.target.value }))
                 }
               />
-            </div>
-
+            </div> */}
+{/* 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Approved By
@@ -237,8 +245,8 @@ function AddTaskModal({ machineId, onClose, onCreated }) {
                   setForm(prev => ({ ...prev, approvedBy: e.target.value }))
                 }
               />
-            </div>
-          </div>
+            </div> */}
+          {/* </div> */}
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">

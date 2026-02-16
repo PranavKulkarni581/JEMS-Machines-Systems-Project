@@ -454,19 +454,26 @@ function AddSubtaskModal({
     endDate: ''
   });
 
-  const assignees = [
-    ...employees.map(e => ({
-      id: e.id.toString(),
-      name: e.name,
-      role: 'Employee'
-    })),
-    ...managers.map(m => ({
-      id: m.id.toString(),
-      name: m.fullName,
-      role: 'Manager'
-    }))
-  ];
+  const managerNames = new Set(
+  managers.map(m => m.fullName.trim().toLowerCase())
+);
 
+const filteredEmployees = employees.filter(
+  e => !managerNames.has(e.name.trim().toLowerCase())
+);
+
+const assignees = [
+  ...managers.map(m => ({
+    id: m.id.toString(),
+    name: m.fullName,
+    role: 'Manager'
+  })),
+  ...filteredEmployees.map(e => ({
+    id: e.id.toString(),
+    name: e.name,
+    role: 'Employee'
+  }))
+];
   const isValid = form.name && form.assignedEmployeeId;
 
   const handleAssigneeChange = (e) => {
