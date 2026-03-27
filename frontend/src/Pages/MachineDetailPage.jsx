@@ -3,7 +3,7 @@ import { ChevronRight, LogOut, Plus, X, Calendar, User } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 
-const API_BASE_URL = 'https://jems-machines-systems.onrender.com/api';
+const API_BASE_URL = 'http://192.168.1.43:8080/api';
 
 // Input styles
 const inputStyles = `
