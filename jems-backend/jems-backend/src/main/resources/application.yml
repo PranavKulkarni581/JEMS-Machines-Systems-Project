@@ -4,7 +4,8 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb://localhost:27017/jems_db
+      uri: mongodb://localhost:27017/JEMS_db
+  #      database: JEMS_db
 
   servlet:
     multipart:
