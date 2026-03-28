@@ -83,7 +83,11 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("http://localhost:3000", "http://localhost:5173", "http://192.168.1.43:8080/api")
+                List.of(
+                        "http://localhost:5173",
+                        "http://192.168.1.43:5173",
+                        "http://192.168.1.43:8080"
+                )
         );
 
         configuration.setAllowedMethods(

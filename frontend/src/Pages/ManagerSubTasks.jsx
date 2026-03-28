@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { useLocation } from 'react-router-dom';
 
-const API_BASE_URL = 'http://192.168.1.43:8080/api';
+const API_BASE_URL = '/api';
 
 const inputStyles = `
   .remark-input {

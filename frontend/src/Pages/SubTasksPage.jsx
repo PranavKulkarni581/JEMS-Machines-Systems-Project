@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-const API_BASE_URL = 'http://192.168.1.43:8080/api';
+const API_BASE_URL = '/api';
 
 // Input styles
 const inputStyles = `
