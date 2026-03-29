@@ -12,7 +12,7 @@ import UsersPage from './UsersPage';
 import AddMachine from './AddMachine';
 import Footer from './Footer';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://192.168.1.43:8080/api';
 
 export default function JEMSTracker() {
   const navigate = useNavigate();

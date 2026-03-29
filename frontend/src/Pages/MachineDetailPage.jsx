@@ -3,7 +3,7 @@ import { ChevronRight, LogOut, Plus, X, Calendar, User } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://192.168.1.43:8080/api';
 
 // Input styles
 const inputStyles = `
@@ -535,7 +535,7 @@ function FileUploadModal({
 
                     <div className="flex gap-3 items-center">
                       <a
-                       href={`/api${file.fileUrl}`}
+                       href={`http://192.168.1.43:8080/api${file.fileUrl}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline"

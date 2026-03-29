@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Package, Calendar, User, FileText } from 'lucide-react';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://192.168.1.43:8080/api';
 
 // Add this style tag to your main CSS or index.css
 const inputStyles = `
